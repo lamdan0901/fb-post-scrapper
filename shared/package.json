@@ -1,0 +1,17 @@
+{
+  "name": "@job-alert/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/types.js",
+  "types": "dist/types.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/types.js",
+      "types": "./dist/types.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  }
+}

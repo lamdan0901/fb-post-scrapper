@@ -1,0 +1,322 @@
+[
+  {
+    "id": "P1",
+    "content": "Remote_open2nd\nTìm kiếm Magento 3-4yoe, Eng giao tiếp trôi chảy, offer hấp dẫn.\nPing e nhé",
+    "post_url": "https://www.facebook.com/groups/otingting2021/posts/000001",
+    "poster_name": "Recruiter A",
+    "poster_url": "https://www.facebook.com/recruiterA",
+    "created_time_raw": "2h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Other",
+      "level": "Unknown",
+      "yoe": 3,
+      "reason": "Magento role, not in allowed roles (Frontend/Fullstack/Mobile)"
+    }
+  },
+  {
+    "id": "P2",
+    "content": "Remote fulltime\nDTalent tìm Senior/Principal Fullstack JS/TS Engineer có Eng giao tiếp tốt để join pj với KH Sing. Range upto 90++",
+    "post_url": "https://www.facebook.com/groups/otingting2021/posts/000002",
+    "poster_name": "DTalent HR",
+    "poster_url": "https://www.facebook.com/dtalenthr",
+    "created_time_raw": "5h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Fullstack",
+      "level": "Senior",
+      "yoe": null,
+      "reason": "Senior/Principal level — exceeds allowed level (max Middle)"
+    }
+  },
+  {
+    "id": "P3",
+    "content": "REMOTE!!\nREMOTE JOB LIST (open for 2nd job)\n1) Python developer (Scala): +4YOE, domain AI. Strong Azura. Good English. Remote time: 2-10pm.\n2) Senior UIUX: Max 40M, Good English.\n3) Senior Java: Max 40M, Good English.\n4) Automation Test: +3YOE. Skill Python/ C++, Linux system, API test. Good English. Max 50M.\n--> Inbox for more details!!!",
+    "post_url": "https://www.facebook.com/groups/otingting2021/posts/000003",
+    "poster_name": "Job Board VN",
+    "poster_url": "https://www.facebook.com/jobboardvn",
+    "created_time_raw": "1d",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Other",
+      "level": "Senior",
+      "yoe": 4,
+      "reason": "No Frontend/Fullstack/Mobile roles listed. Python, Java, UIUX, QA only"
+    }
+  },
+  {
+    "id": "P4",
+    "content": "🔥 TECH JOBS – REMOTE – NO SHUI\nFLUENT ENGLISH is must have\n-----------------------------\n1️⃣ Product Analyst – $2,500 NET\n2️⃣ UX/UI Designer – $2,200 NET\n3️⃣ Assistant General Manager – $3,000 NET\n4️⃣ DevOps Engineer – $2,200 NET\n5️⃣ Fraud Analyst – $2,200 NET\n6️⃣ Frontend Developer (ReactJS) – $2,200 NET\n7️⃣ Backend Developer (NodeJS) – $2,200 NET\n📩 Quan tâm job ib em hỗ trợ full JD ạ",
+    "post_url": "https://www.facebook.com/groups/otingting2021/posts/000004",
+    "poster_name": "Remote Jobs VN",
+    "poster_url": "https://www.facebook.com/remotejobsvn",
+    "created_time_raw": "3h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": false,
+      "role": "Frontend",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Contains Frontend Developer (ReactJS). Level/YOE not specified but role matches"
+    }
+  },
+  {
+    "id": "P5",
+    "content": "[Mỹ Đình -HN] Chiêu mộ Reactjs từ 6 năm KN, upto 38M. Ưu tiên từng leadteam. Ko yc ngoại ngữ. Làm T2-T6, pv 1 vòng duy nhất",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000005",
+    "poster_name": "Tuyển IT HN",
+    "poster_url": "https://www.facebook.com/tuyenithn",
+    "created_time_raw": "Yesterday at 10:00 AM",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Frontend",
+      "level": "Senior",
+      "yoe": 6,
+      "reason": "ReactJS role matches but 6 YOE exceeds max_yoe (5). Lead team priority implies Senior"
+    }
+  },
+  {
+    "id": "P6",
+    "content": "[Q.1/HCM]- Thy tuyển ReactJS & .NET Dev 4 YoE+, range 20-25M Gross. PV ONL, IB Thy gửi JD nha☺️😇",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000006",
+    "poster_name": "Thy Nguyen",
+    "poster_url": "https://www.facebook.com/thynguyen",
+    "created_time_raw": "6h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": false,
+      "role": "Fullstack",
+      "level": "Middle",
+      "yoe": 4,
+      "reason": "ReactJS + .NET (Fullstack), 4 YOE ≤ max_yoe. Mid-level range"
+    }
+  },
+  {
+    "id": "P7",
+    "content": "Bán laptop Dell Latitude E7470, i5 gen 6, RAM 8GB, SSD 256GB. Giá 3tr5. Ai cần inbox nhé!",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000007",
+    "poster_name": "Seller Random",
+    "poster_url": "https://www.facebook.com/sellerrandom",
+    "created_time_raw": "4h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Other",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Not a job post. Selling a laptop"
+    }
+  },
+  {
+    "id": "P8",
+    "content": "Mình đang tìm 1 bạn Fresher Frontend (React) để join team startup. Remote, flexible time. Lương thoả thuận. Ai quan tâm inbox mình nhé 🙌",
+    "post_url": "https://www.facebook.com/groups/remote.freelance.it/posts/000008",
+    "poster_name": "Startup Founder",
+    "poster_url": "https://www.facebook.com/startupfounder",
+    "created_time_raw": "Just now",
+    "expected": {
+      "is_match": true,
+      "is_freelance": false,
+      "role": "Frontend",
+      "level": "Fresher",
+      "yoe": null,
+      "reason": "Fresher Frontend React role — perfect match"
+    }
+  },
+  {
+    "id": "P9",
+    "content": "Cần tuyển gấp Senior Backend (Golang) 5 năm+. Onsite HCM. Lương 50-70M. Liên hệ HR: 0909xxx",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000009",
+    "poster_name": "Go Dev HR",
+    "poster_url": "https://www.facebook.com/godevhr",
+    "created_time_raw": "1h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Backend",
+      "level": "Senior",
+      "yoe": 5,
+      "reason": "Backend role not in allowed roles. Also Senior level exceeds max"
+    }
+  },
+  {
+    "id": "P10",
+    "content": "[Remote] Cần freelancer React Native build app MVP cho startup. Budget 15-20M. Timeline 1 tháng. Ai rảnh inbox mình.",
+    "post_url": "https://www.facebook.com/groups/remote.freelance.it/posts/000010",
+    "poster_name": "Project Owner",
+    "poster_url": "https://www.facebook.com/projectowner",
+    "created_time_raw": "8h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": true,
+      "role": "Mobile",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Freelance React Native project. Freelance auto-accept bypasses level/YOE restrictions"
+    }
+  },
+  {
+    "id": "P11",
+    "content": "CMC Global tuyển Frontend Developer (ReactJS/Angular) 2-4 years. Remote friendly. Apply at cmcglobal.com.vn/careers",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000011",
+    "poster_name": "CMC Recruiter",
+    "poster_url": "https://www.facebook.com/cmcrecruiter",
+    "created_time_raw": "3d",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Frontend",
+      "level": "Junior",
+      "yoe": 2,
+      "reason": "Blacklisted company: cmcglobal. Pre-filter rejects without API call"
+    }
+  },
+  {
+    "id": "P12",
+    "content": "Viettel Solutions tuyển dụng Mobile Developer (Flutter). Yêu cầu: 1-3 năm kinh nghiệm. Lương cạnh tranh. Apply ngay!",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000012",
+    "poster_name": "Viettel HR",
+    "poster_url": "https://www.facebook.com/viettelhr",
+    "created_time_raw": "2d",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Mobile",
+      "level": "Junior",
+      "yoe": 1,
+      "reason": "Blacklisted company: viettel. Pre-filter rejects without API call"
+    }
+  },
+  {
+    "id": "P13",
+    "content": "Looking for a part-time Next.js developer to help with our e-commerce platform. Remote, flexible hours, pays $25/hr. DM if interested.",
+    "post_url": "https://www.facebook.com/groups/remote.freelance.it/posts/000013",
+    "poster_name": "E-Com Startup",
+    "poster_url": "https://www.facebook.com/ecomstartup",
+    "created_time_raw": "12h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": true,
+      "role": "Frontend",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Part-time Next.js — freelance auto-accept. Frontend role match"
+    }
+  },
+  {
+    "id": "P14",
+    "content": "Có ai biết chỗ học React Native ở HCM không ạ? Mình đang muốn chuyển từ web sang mobile. Cảm ơn mọi người!",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000014",
+    "poster_name": "Learner VN",
+    "poster_url": "https://www.facebook.com/learnervn",
+    "created_time_raw": "5h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Other",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Not a job post. Asking for learning recommendations"
+    }
+  },
+  {
+    "id": "P15",
+    "content": "Fullstack Developer (Node.js + React) - Junior/Middle level. 1-3 YOE. Remote OK. Salary 15-25M. Apply: hr@techstartup.vn",
+    "post_url": "https://www.facebook.com/groups/976679876378945/posts/000015",
+    "poster_name": "Tech Startup HR",
+    "poster_url": "https://www.facebook.com/techstartuphr",
+    "created_time_raw": "7h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": false,
+      "role": "Fullstack",
+      "level": "Junior",
+      "yoe": 1,
+      "reason": "Fullstack Node+React, Junior/Middle, 1-3 YOE. Perfect match"
+    }
+  },
+  {
+    "id": "P16",
+    "content": "Tech Lead / Engineering Manager cần cho team 10 người. 8+ years exp. Fullstack background preferred. Lương 80-100M gross. Onsite Q7.",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000016",
+    "poster_name": "Big Corp HR",
+    "poster_url": "https://www.facebook.com/bigcorphr",
+    "created_time_raw": "1d",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Fullstack",
+      "level": "Senior",
+      "yoe": 8,
+      "reason": "Tech Lead/Manager level, 8 YOE far exceeds max_yoe (5)"
+    }
+  },
+  {
+    "id": "P17",
+    "content": "Chia sẻ kinh nghiệm phỏng vấn Frontend ở Shopee. 3 vòng, hỏi React hooks, system design, LeetCode medium. Ai có kinh nghiệm share với nhé 🤗",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000017",
+    "poster_name": "Interview Sharer",
+    "poster_url": "https://www.facebook.com/interviewsharer",
+    "created_time_raw": "2h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Other",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Not a job post. Interview experience sharing"
+    }
+  },
+  {
+    "id": "P18",
+    "content": "React Developer needed, 2 YOE, remote. Salary negotiable. DM for details.",
+    "post_url": "https://www.facebook.com/groups/remote.freelance.it/posts/000018",
+    "poster_name": "Quick Hire",
+    "poster_url": "https://www.facebook.com/quickhire",
+    "created_time_raw": "30m",
+    "expected": {
+      "is_match": true,
+      "is_freelance": false,
+      "role": "Frontend",
+      "level": "Junior",
+      "yoe": 2,
+      "reason": "React, 2 YOE, remote. Role and level match"
+    }
+  },
+  {
+    "id": "P19",
+    "content": "Tuyển dụng Mobile Developer (iOS/Android) - TinhVan Software. 2-4 năm KN. Lương 18-28M. Làm việc tại Cầu Giấy, HN.",
+    "post_url": "https://www.facebook.com/groups/jobsitvietnam/posts/000019",
+    "poster_name": "TinhVan HR",
+    "poster_url": "https://www.facebook.com/tinhvanhr",
+    "created_time_raw": "4h",
+    "expected": {
+      "is_match": false,
+      "is_freelance": false,
+      "role": "Mobile",
+      "level": "Junior",
+      "yoe": 2,
+      "reason": "Blacklisted company: tinhvan. Pre-filter rejects without API call"
+    }
+  },
+  {
+    "id": "P20",
+    "content": "Cần tìm dev TypeScript làm dự án ngắn hạn 2 tuần. Convert codebase JS sang TS. Budget 10M. Remote. Inbox nếu rảnh nhé.",
+    "post_url": "https://www.facebook.com/groups/remote.freelance.it/posts/000020",
+    "poster_name": "Short Project Owner",
+    "poster_url": "https://www.facebook.com/shortprojectowner",
+    "created_time_raw": "9h",
+    "expected": {
+      "is_match": true,
+      "is_freelance": true,
+      "role": "Frontend",
+      "level": "Unknown",
+      "yoe": null,
+      "reason": "Short-term TypeScript project (freelance auto-accept). Code conversion task"
+    }
+  }
+]
