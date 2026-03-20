@@ -255,48 +255,48 @@
 
 ### Story 7.1: Frontend Project Setup
 
-- [ ] 7.1.1 — Initialize Vite + React 19 + TypeScript project in `packages/frontend/`
-- [ ] 7.1.2 — Install and configure Tailwind CSS v4
-- [ ] 7.1.3 — Install and configure React Router
-- [ ] 7.1.4 — Install and configure TanStack Query (React Query)
-- [ ] 7.1.5 — Create API client wrapper in `packages/frontend/src/lib/api.ts`
-- [ ] 7.1.6 — Create React Query hooks in `packages/frontend/src/lib/hooks.ts`
+- [x] 7.1.1 — Initialize Vite + React 19 + TypeScript project in `packages/frontend/`
+- [x] 7.1.2 — Install and configure Tailwind CSS v4
+- [x] 7.1.3 — Install and configure React Router
+- [x] 7.1.4 — Install and configure TanStack Query (React Query)
+- [x] 7.1.5 — Create API client wrapper in `packages/frontend/src/lib/api.ts`
+- [x] 7.1.6 — Create React Query hooks in `packages/frontend/src/lib/hooks.ts`
 
 ### Story 7.2: Layout & Navigation
 
-- [ ] 7.2.1 — Create app shell with sidebar or top nav in `App.tsx`
-- [ ] 7.2.2 — Add route: `/` → Jobs page
-- [ ] 7.2.3 — Add route: `/settings` → Settings page
-- [ ] 7.2.4 — Implement responsive design (desktop-first, mobile-usable)
+- [x] 7.2.1 — Create app shell with sidebar or top nav in `App.tsx`
+- [x] 7.2.2 — Add route: `/` → Jobs page
+- [x] 7.2.3 — Add route: `/settings` → Settings page
+- [x] 7.2.4 — Implement responsive design (desktop-first, mobile-usable)
 
 ### Story 7.3: Jobs List Page
 
-- [ ] 7.3.1 — Create `JobsPage.tsx`
-- [ ] 7.3.2 — Create `FilterBar.tsx` with: role dropdown, level dropdown, freelance toggle, status dropdown, search input (debounced 300ms)
-- [ ] 7.3.3 — Create `JobCard.tsx` with: content snippet (200 chars, expandable), role/level badges, YOE, score indicator, AI reason
-- [ ] 7.3.4 — Add external links: Facebook post, Poster profile
-- [ ] 7.3.5 — Add action buttons: Apply, Save, Archive (status transitions)
-- [ ] 7.3.6 — Add feedback buttons: 👍 Relevant, 👎 Irrelevant
-- [ ] 7.3.7 — Implement keyword highlighting in content (react, nextjs, salary, yoe, etc.)
-- [ ] 7.3.8 — Implement pagination with page numbers, previous/next
+- [x] 7.3.1 — Create `JobsPage.tsx`
+- [x] 7.3.2 — Create `FilterBar.tsx` with: role dropdown, level dropdown, freelance toggle, status dropdown, search input (debounced 300ms)
+- [x] 7.3.3 — Create `JobCard.tsx` with: content snippet (200 chars, expandable), role/level badges, YOE, score indicator, AI reason
+- [x] 7.3.4 — Add external links: Facebook post, Poster profile
+- [x] 7.3.5 — Add action buttons: Apply, Save, Archive (status transitions)
+- [x] 7.3.6 — Add feedback buttons: 👍 Relevant, 👎 Irrelevant
+- [x] 7.3.7 — Implement keyword highlighting in content (react, nextjs, salary, yoe, etc.)
+- [x] 7.3.8 — Implement pagination with page numbers, previous/next
 
 ### Story 7.4: Settings Page
 
-- [ ] 7.4.1 — Create `SettingsPage.tsx`
-- [ ] 7.4.2 — Facebook Groups list: add/remove with URL validation
-- [ ] 7.4.3 — Keywords: tag-style input for add/remove
-- [ ] 7.4.4 — Blacklist: tag-style input for add/remove
-- [ ] 7.4.5 — Max YOE: number input with validation
-- [ ] 7.4.6 — Cron Schedule: input with human-readable preview
-- [ ] 7.4.7 — Create `CookieUpload.tsx` — drag-and-drop file upload → call API → show valid/expired status
-- [ ] 7.4.8 — Manual Scrape button: trigger `POST /api/scraper/run`, show progress/status
+- [x] 7.4.1 — Create `SettingsPage.tsx`
+- [x] 7.4.2 — Facebook Groups list: add/remove with URL validation
+- [x] 7.4.3 — Keywords: tag-style input for add/remove
+- [x] 7.4.4 — Blacklist: tag-style input for add/remove
+- [x] 7.4.5 — Max YOE: number input with validation
+- [x] 7.4.6 — Cron Schedule: input with human-readable preview
+- [x] 7.4.7 — Create `CookieUpload.tsx` — drag-and-drop file upload → call API → show valid/expired status
+- [x] 7.4.8 — Manual Scrape button: trigger `POST /api/scraper/run`, show progress/status
 
 ### Story 7.5: UI Polish
 
-- [ ] 7.5.1 — Add loading states (skeleton loaders)
-- [ ] 7.5.2 — Add error states with retry button
-- [ ] 7.5.3 — Add toast notifications for actions (status change, settings saved)
-- [ ] 7.5.4 — Add empty states (no jobs found, no results matching filters)
+- [x] 7.5.1 — Add loading states (skeleton loaders)
+- [x] 7.5.2 — Add error states with retry button
+- [x] 7.5.3 — Add toast notifications for actions (status change, settings saved)
+- [x] 7.5.4 — Add empty states (no jobs found, no results matching filters)
 
 ---
 

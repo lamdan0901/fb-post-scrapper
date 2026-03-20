@@ -1,0 +1,188 @@
+import type { Role, Level, Status, FeedbackType } from "@job-alert/shared";
+
+const BASE_URL = "/api";
+
+// ── Types ──
+
+export interface Job {
+  id: number;
+  fb_post_id: string | null;
+  content: string;
+  post_url: string;
+  poster_name: string;
+  poster_url: string | null;
+  post_url_hash: string;
+  content_hash: string;
+  role: Role;
+  level: Level;
+  yoe: number | null;
+  score: number;
+  reason: string;
+  is_freelance: boolean;
+  status: Status;
+  created_time_raw: string | null;
+  created_time_utc: string | null;
+  first_seen_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobsResponse {
+  jobs: Job[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface JobsQuery {
+  page?: number;
+  limit?: number;
+  role?: Role;
+  level?: Level;
+  is_freelance?: boolean;
+  status?: Status;
+  search?: string;
+}
+
+export interface Settings {
+  id: number;
+  target_groups: string[];
+  target_keywords: string[];
+  blacklist: string[];
+  allowed_roles: Role[];
+  allowed_levels: Level[];
+  max_yoe: number;
+  cron_schedule: string;
+}
+
+export interface UpdateSettingsBody {
+  target_groups: string[];
+  target_keywords: string[];
+  blacklist: string[];
+  allowed_roles: Role[];
+  allowed_levels: Level[];
+  max_yoe: number;
+  cron_schedule: string;
+}
+
+export interface ScraperRunResponse {
+  runId: string;
+  status: string;
+}
+
+export interface ScraperStatus {
+  status: string;
+  runId?: string;
+  startedAt?: string;
+  completedAt?: string;
+  error?: string;
+  stats?: {
+    processed: number;
+    matched: number;
+    skipped: number;
+    apiCallsUsed: number;
+  };
+}
+
+export interface CookieUploadResponse {
+  valid: boolean;
+  message: string;
+}
+
+// ── API Client ──
+
+class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+function getAuthHeaders(): HeadersInit {
+  const token = localStorage.getItem("api_token") ?? "";
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    headers: { ...getAuthHeaders(), ...init?.headers },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }));
+    throw new ApiError(res.status, body.message ?? res.statusText);
+  }
+
+  return res.json() as Promise<T>;
+}
+
+// ── Jobs ──
+
+export function fetchJobs(query: JobsQuery = {}): Promise<JobsResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return request<JobsResponse>(`/jobs${qs ? `?${qs}` : ""}`);
+}
+
+export function updateJobStatus(id: number, status: Status): Promise<Job> {
+  return request<Job>(`/jobs/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ status }),
+  });
+}
+
+export function createFeedback(
+  id: number,
+  feedbackType: FeedbackType,
+): Promise<unknown> {
+  return request(`/jobs/${id}/feedback`, {
+    method: "POST",
+    body: JSON.stringify({ feedback_type: feedbackType }),
+  });
+}
+
+// ── Settings ──
+
+export function fetchSettings(): Promise<Settings> {
+  return request<Settings>("/settings");
+}
+
+export function updateSettings(body: UpdateSettingsBody): Promise<Settings> {
+  return request<Settings>("/settings", {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+// ── Scraper ──
+
+export function triggerScraper(): Promise<ScraperRunResponse> {
+  return request<ScraperRunResponse>("/scraper/run", { method: "POST" });
+}
+
+export function fetchScraperStatus(): Promise<ScraperStatus> {
+  return request<ScraperStatus>("/scraper/status");
+}
+
+// ── Cookies ──
+
+export function uploadCookies(
+  content: string,
+  verify = false,
+): Promise<CookieUploadResponse> {
+  return request<CookieUploadResponse>("/cookies/upload", {
+    method: "POST",
+    body: JSON.stringify({ content, verify }),
+  });
+}
