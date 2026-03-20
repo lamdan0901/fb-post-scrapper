@@ -230,21 +230,21 @@
 
 ### Story 6.1: Main Pipeline Runner
 
-- [ ] 6.1.1 — Create `PipelineRunner` class
-- [ ] 6.1.2 — Load settings from DB at run start
-- [ ] 6.1.3 — Call `ScraperOrchestrator` → get new raw posts
-- [ ] 6.1.4 — Call `AIFilterPipeline` → get matched jobs
-- [ ] 6.1.5 — Save matched jobs to DB
-- [ ] 6.1.6 — Send Telegram notification with run results
-- [ ] 6.1.7 — Log run statistics
+- [x] 6.1.1 — Create `PipelineRunner` class
+- [x] 6.1.2 — Load settings from DB at run start
+- [x] 6.1.3 — Call `ScraperOrchestrator` → get new raw posts
+- [x] 6.1.4 — Call `AIFilterPipeline` → get matched jobs
+- [x] 6.1.5 — Save matched jobs to DB
+- [x] 6.1.6 — Send Telegram notification with run results
+- [x] 6.1.7 — Log run statistics
 
 ### Story 6.2: Cron Scheduling
 
-- [ ] 6.2.1 — Install and integrate `node-cron`
-- [ ] 6.2.2 — Read cron expression from settings (default: `0 */4 * * *`)
-- [ ] 6.2.3 — Register cron job on app start
-- [ ] 6.2.4 — Re-register cron job on settings update
-- [ ] 6.2.5 — Implement concurrent run prevention (lock / flag mechanism)
+- [x] 6.2.1 — Install and integrate `node-cron`
+- [x] 6.2.2 — Read cron expression from settings (default: `0 */4 * * *`)
+- [x] 6.2.3 — Register cron job on app start
+- [x] 6.2.4 — Re-register cron job on settings update
+- [x] 6.2.5 — Implement concurrent run prevention (lock / flag mechanism)
 
 ---
 

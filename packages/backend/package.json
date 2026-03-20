@@ -10,8 +10,11 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@job-alert/ai-filter": "workspace:*",
     "@job-alert/generated-prisma": "workspace:*",
+    "@job-alert/notifier": "workspace:*",
     "@job-alert/scraper": "workspace:*",
+    "@job-alert/shared": "workspace:*",
     "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "better-sqlite3": "^12.8.0",
@@ -19,11 +22,13 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "express-rate-limit": "^8.3.1",
+    "node-cron": "^4.2.1",
     "playwright": "^1.58.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6"
+    "@types/express": "^5.0.6",
+    "@types/node-cron": "^3.0.11"
   }
 }

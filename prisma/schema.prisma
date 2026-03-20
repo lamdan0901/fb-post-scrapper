@@ -75,6 +75,8 @@ model Settings {
   target_groups   String // JSON array of group URLs
   target_keywords String // JSON array of keyword strings
   blacklist       String // JSON array of blacklist terms
+  allowed_roles   String @default("[\"Frontend\",\"Backend\",\"Fullstack\",\"Mobile\",\"Other\"]") // JSON array of Role values
+  allowed_levels  String @default("[\"Fresher\",\"Junior\",\"Middle\",\"Unknown\"]") // JSON array of Level values
   max_yoe         Int    @default(5)
   cron_schedule   String @default("0 */4 * * *")
 }

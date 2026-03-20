@@ -50,12 +50,21 @@ importers:
 
   packages/backend:
     dependencies:
+      '@job-alert/ai-filter':
+        specifier: workspace:*
+        version: link:../ai-filter
       '@job-alert/generated-prisma':
         specifier: workspace:*
         version: link:../../generated/prisma
+      '@job-alert/notifier':
+        specifier: workspace:*
+        version: link:../notifier
       '@job-alert/scraper':
         specifier: workspace:*
         version: link:../scraper
+      '@job-alert/shared':
+        specifier: workspace:*
+        version: link:../../shared
       '@prisma/adapter-better-sqlite3':
         specifier: ^7.5.0
         version: 7.5.0
@@ -77,6 +86,9 @@ importers:
       express-rate-limit:
         specifier: ^8.3.1
         version: 8.3.1(express@5.2.1)
+      node-cron:
+        specifier: ^4.2.1
+        version: 4.2.1
       playwright:
         specifier: ^1.58.2
         version: 1.58.2
@@ -90,6 +102,9 @@ importers:
       '@types/express':
         specifier: ^5.0.6
         version: 5.0.6
+      '@types/node-cron':
+        specifier: ^3.0.11
+        version: 3.0.11
 
   packages/frontend:
     dependencies:
@@ -725,6 +740,9 @@ packages:
 
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
+
+  '@types/node-cron@3.0.11':
+    resolution: {integrity: sha512-0ikrnug3/IyneSHqCBeslAhlK2aBfYek1fGo4bP4QnZPmiqSGRK+Oy7ZMisLWkesffJvQ1cqAcBnJC+8+nxIAg==}
 
   '@types/node@24.12.0':
     resolution: {integrity: sha512-GYDxsZi3ChgmckRT9HPU0WEhKLP08ev/Yfcq2AstjrDASOYCSXeyjDsHg4v5t4jOj7cyDX3vmprafKlWIG9MXQ==}
@@ -1632,6 +1650,10 @@ packages:
   node-abi@3.89.0:
     resolution: {integrity: sha512-6u9UwL0HlAl21+agMN3YAMXcKByMqwGx+pq+P76vii5f7hTPtKDp08/H9py6DY+cfDw7kQNTGEj/rly3IgbNQA==}
     engines: {node: '>=10'}
+
+  node-cron@4.2.1:
+    resolution: {integrity: sha512-lgimEHPE/QDgFlywTd8yTR61ptugX3Qer29efeyWw2rv259HtGBNn1vZVmp8lB9uo9wC0t/AT4iGqXxia+CJFg==}
+    engines: {node: '>=6.0.0'}
 
   node-domexception@1.0.0:
     resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
@@ -2653,6 +2675,8 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/node-cron@3.0.11': {}
+
   '@types/node@24.12.0':
     dependencies:
       undici-types: 7.16.0
@@ -3581,6 +3605,8 @@ snapshots:
   node-abi@3.89.0:
     dependencies:
       semver: 7.7.4
+
+  node-cron@4.2.1: {}
 
   node-domexception@1.0.0: {}
 

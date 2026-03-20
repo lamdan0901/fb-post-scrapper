@@ -1,8 +1,12 @@
 import { Router, type Router as RouterType } from "express";
 import { z } from "zod";
-import type { Settings } from "@job-alert/generated-prisma";
+import { Role, Level } from "@job-alert/shared";
 import { prisma } from "../lib/db.js";
 import { NotFoundError } from "../errors.js";
+import { parseSettingsRow } from "../lib/settings-helpers.js";
+import { scheduler } from "../lib/scheduler.js";
+
+export { parseSettingsRow } from "../lib/settings-helpers.js";
 
 // ── Helpers ──
 
@@ -39,16 +43,8 @@ function isValidCron(expr: string): boolean {
   return true;
 }
 
-export function parseSettingsRow(row: Settings) {
-  return {
-    id: row.id,
-    target_groups: JSON.parse(row.target_groups) as string[],
-    target_keywords: JSON.parse(row.target_keywords) as string[],
-    blacklist: JSON.parse(row.blacklist) as string[],
-    max_yoe: row.max_yoe,
-    cron_schedule: row.cron_schedule,
-  };
-}
+const VALID_ROLES = Object.values(Role) as [string, ...string[]];
+const VALID_LEVELS = Object.values(Level) as [string, ...string[]];
 
 // ── Zod Schemas ──
 
@@ -62,6 +58,12 @@ const updateSettingsSchema = z.object({
   blacklist: z.array(
     z.string().trim().min(1, "Blacklist term must not be empty"),
   ),
+  allowed_roles: z
+    .array(z.enum(VALID_ROLES))
+    .min(1, "At least one role is required"),
+  allowed_levels: z
+    .array(z.enum(VALID_LEVELS))
+    .min(1, "At least one level is required"),
   max_yoe: z.number().int().positive("max_yoe must be a positive integer"),
   cron_schedule: z
     .string()
@@ -95,10 +97,17 @@ settingsRouter.put("/", async (req, res) => {
       target_groups: JSON.stringify(body.target_groups),
       target_keywords: JSON.stringify(body.target_keywords),
       blacklist: JSON.stringify(body.blacklist),
+      allowed_roles: JSON.stringify(body.allowed_roles),
+      allowed_levels: JSON.stringify(body.allowed_levels),
       max_yoe: body.max_yoe,
       cron_schedule: body.cron_schedule,
     },
   });
+
+  // Re-register cron job if schedule changed
+  if (body.cron_schedule !== scheduler.getExpression()) {
+    scheduler.start(body.cron_schedule);
+  }
 
   res.json(parseSettingsRow(row));
 });

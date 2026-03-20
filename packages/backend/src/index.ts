@@ -10,6 +10,7 @@ import { jobsRouter } from "./routes/jobs.js";
 import { settingsRouter } from "./routes/settings.js";
 import { scraperRouter } from "./routes/scraper.js";
 import { cookiesRouter } from "./routes/cookies.js";
+import { scheduler } from "./lib/scheduler.js";
 
 // ── Startup validation ──
 const PORT = parseInt(process.env["PORT"] ?? "3000", 10);
@@ -44,13 +45,24 @@ app.use("/api", api);
 // Global error handler (must be last)
 app.use(errorHandler);
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`Server listening on port ${PORT}`);
+
+  // ── Initialize cron scheduler from DB settings ──
+  try {
+    const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+    if (settings?.cron_schedule) {
+      scheduler.start(settings.cron_schedule);
+    }
+  } catch (err) {
+    console.error("Failed to initialize cron scheduler:", err);
+  }
 });
 
 // ── Graceful shutdown ──
 function shutdown() {
   console.log("Shutting down…");
+  scheduler.stop();
   server.close(() => {
     prisma.$disconnect().then(() => process.exit(0));
   });

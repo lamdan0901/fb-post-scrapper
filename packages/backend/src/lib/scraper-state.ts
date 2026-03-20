@@ -1,7 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { ScrapeRunStats } from "@job-alert/scraper";
+import type { PipelineStats } from "@job-alert/ai-filter";
 
 export type ScraperRunStatus = "idle" | "running" | "completed" | "failed";
+
+/** Combined statistics from a full pipeline run. */
+export interface PipelineRunStats {
+  scrape: ScrapeRunStats;
+  ai: PipelineStats;
+  savedCount: number;
+}
 
 /** Maximum time a run can stay in "running" before it's considered stale. */
 const STALE_RUN_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
@@ -11,7 +19,7 @@ export interface ScraperRunState {
   status: ScraperRunStatus;
   startedAt: string;
   completedAt?: string;
-  result?: ScrapeRunStats;
+  result?: PipelineRunStats;
   error?: string;
 }
 
@@ -43,20 +51,36 @@ class ScraperState {
     return runId;
   }
 
-  completeRun(result: ScrapeRunStats): void {
-    if (this.state) {
-      this.state.status = "completed";
-      this.state.completedAt = new Date().toISOString();
-      this.state.result = result;
+  /** Atomically check-and-start: returns runId if started, null if already running. */
+  tryStartRun(): string | null {
+    if (this.isRunning()) return null;
+    const runId = randomUUID();
+    this.state = {
+      runId,
+      status: "running",
+      startedAt: new Date().toISOString(),
+    };
+    return runId;
+  }
+
+  completeRun(result: PipelineRunStats): void {
+    if (!this.state) {
+      console.warn("[ScraperState] completeRun called with no active run");
+      return;
     }
+    this.state.status = "completed";
+    this.state.completedAt = new Date().toISOString();
+    this.state.result = result;
   }
 
   failRun(error: string): void {
-    if (this.state) {
-      this.state.status = "failed";
-      this.state.completedAt = new Date().toISOString();
-      this.state.error = error;
+    if (!this.state) {
+      console.warn("[ScraperState] failRun called with no active run");
+      return;
     }
+    this.state.status = "failed";
+    this.state.completedAt = new Date().toISOString();
+    this.state.error = error;
   }
 
   getState(): ScraperRunState | null {
