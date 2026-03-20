@@ -1,9 +1,10 @@
 packages:
   - packages/*
   - shared
+  - generated/prisma
 
 ignoredBuiltDependencies:
-  - '@prisma/engines'
+  - "@prisma/engines"
   - esbuild
   - prisma
 

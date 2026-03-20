@@ -158,41 +158,41 @@
 
 ### Story 4.1: Server Setup
 
-- [ ] 4.1.1 — Create Express app entry point in `packages/backend/src/index.ts`
-- [ ] 4.1.2 — Add middleware: CORS, JSON parsing
-- [ ] 4.1.3 — Create bearer token auth middleware in `packages/backend/src/middleware/auth.ts`
-- [ ] 4.1.4 — Create global error handling middleware with proper HTTP status codes
-- [ ] 4.1.5 — Create Prisma client singleton in `packages/backend/src/lib/db.ts`
+- [x] 4.1.1 — Create Express app entry point in `packages/backend/src/index.ts`
+- [x] 4.1.2 — Add middleware: CORS, JSON parsing
+- [x] 4.1.3 — Create bearer token auth middleware in `packages/backend/src/middleware/auth.ts`
+- [x] 4.1.4 — Create global error handling middleware with proper HTTP status codes
+- [x] 4.1.5 — Create Prisma client singleton in `packages/backend/src/lib/db.ts`
 
 ### Story 4.2: Job Endpoints
 
-- [ ] 4.2.1 — Create `packages/backend/src/routes/jobs.ts`
-- [ ] 4.2.2 — Implement `GET /api/jobs` with query params: page, limit, role, level, is_freelance, status, search (full-text)
-- [ ] 4.2.3 — Implement pagination response: `{ jobs, total, page, totalPages }`
-- [ ] 4.2.4 — Implement `PUT /api/jobs/:id` — update job status with validation
-- [ ] 4.2.5 — Implement `POST /api/jobs/:id/feedback` — insert UserFeedback record
-- [ ] 4.2.6 — Add Zod request validation for all endpoints
+- [x] 4.2.1 — Create `packages/backend/src/routes/jobs.ts`
+- [x] 4.2.2 — Implement `GET /api/jobs` with query params: page, limit, role, level, is_freelance, status, search (full-text)
+- [x] 4.2.3 — Implement pagination response: `{ jobs, total, page, totalPages }`
+- [x] 4.2.4 — Implement `PUT /api/jobs/:id` — update job status with validation
+- [x] 4.2.5 — Implement `POST /api/jobs/:id/feedback` — insert UserFeedback record
+- [x] 4.2.6 — Add Zod request validation for all endpoints
 
 ### Story 4.3: Settings Endpoints
 
-- [ ] 4.3.1 — Create `packages/backend/src/routes/settings.ts`
-- [ ] 4.3.2 — Implement `GET /api/settings` — return settings with JSON fields parsed to arrays
-- [ ] 4.3.3 — Implement `PUT /api/settings` — validate inputs (URL format, positive max_yoe, valid cron), update row
+- [x] 4.3.1 — Create `packages/backend/src/routes/settings.ts`
+- [x] 4.3.2 — Implement `GET /api/settings` — return settings with JSON fields parsed to arrays
+- [x] 4.3.3 — Implement `PUT /api/settings` — validate inputs (URL format, positive max_yoe, valid cron), update row
 
 ### Story 4.4: Scraper Control Endpoints
 
-- [ ] 4.4.1 — Create `packages/backend/src/routes/scraper.ts`
-- [ ] 4.4.2 — Implement `POST /api/scraper/run` — trigger async scraping, return run ID
-- [ ] 4.4.3 — Implement `GET /api/scraper/status` — return current status / last run result
+- [x] 4.4.1 — Create `packages/backend/src/routes/scraper.ts`
+- [x] 4.4.2 — Implement `POST /api/scraper/run` — trigger async scraping, return run ID
+- [x] 4.4.3 — Implement `GET /api/scraper/status` — return current status / last run result
 
 ### Story 4.5: Cookie Management Endpoint
 
-- [ ] 4.5.1 — Create `packages/backend/src/routes/cookies.ts`
-- [ ] 4.5.2 — Implement `POST /api/cookies/upload` — accept JSON cookie file
-- [ ] 4.5.3 — Validate cookie structure (must contain Facebook session cookies)
-- [ ] 4.5.4 — Save cookie file to secure location on disk (outside web root)
-- [ ] 4.5.5 — Test validity via quick Playwright session check
-- [ ] 4.5.6 — Return `{ valid: boolean, message: string }`
+- [x] 4.5.1 — Create `packages/backend/src/routes/cookies.ts`
+- [x] 4.5.2 — Implement `POST /api/cookies/upload` — accept JSON cookie file
+- [x] 4.5.3 — Validate cookie structure (must contain Facebook session cookies)
+- [x] 4.5.4 — Save cookie file to secure location on disk (outside web root)
+- [x] 4.5.5 — Test validity via quick Playwright session check
+- [x] 4.5.6 — Return `{ valid: boolean, message: string }`
 
 ---
 
