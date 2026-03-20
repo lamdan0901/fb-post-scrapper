@@ -339,27 +339,27 @@
 
 ### Story 9.1: Static Test Dataset
 
-- [ ] 9.1.1 — Create `tests/fixtures/test_jobs.json`
-- [ ] 9.1.2 — Add 15 valid job posts (various roles, levels, Vietnamese + English)
-- [ ] 9.1.3 — Add 10 invalid posts (non-job, off-topic)
-- [ ] 9.1.4 — Add 5 blacklisted company posts
-- [ ] 9.1.5 — Add 5 edge cases (missing YOE, mixed language, freelance)
-- [ ] 9.1.6 — Add 5 senior/lead posts (should be rejected)
+- [x] 9.1.1 — Create `tests/fixtures/test_jobs.json`
+- [x] 9.1.2 — Add 15 valid job posts (various roles, levels, Vietnamese + English)
+- [x] 9.1.3 — Add 10 invalid posts (non-job, off-topic)
+- [x] 9.1.4 — Add 5 blacklisted company posts
+- [x] 9.1.5 — Add 5 edge cases (missing YOE, mixed language, freelance)
+- [x] 9.1.6 — Add 5 senior/lead posts (should be rejected)
 
 ### Story 9.2: Unit Tests
 
-- [ ] 9.2.1 — Test `TimestampParser` — all format variations
-- [ ] 9.2.2 — Test `ContentPreprocessor` — normalization, trimming
-- [ ] 9.2.3 — Test `PreFilter` — blacklist matching, keyword matching
-- [ ] 9.2.4 — Test `Deduplicator` — hash generation, duplicate detection
-- [ ] 9.2.5 — Test Gemini response validation — valid/invalid JSON cases
-- [ ] 9.2.6 — Test API Zod schemas — validation rules
+- [x] 9.2.1 — Test `TimestampParser` — all format variations
+- [x] 9.2.2 — Test `ContentPreprocessor` — normalization, trimming
+- [x] 9.2.3 — Test `PreFilter` — blacklist matching, keyword matching
+- [x] 9.2.4 — Test `Deduplicator` — hash generation, duplicate detection
+- [x] 9.2.5 — Test Gemini response validation — valid/invalid JSON cases
+- [x] 9.2.6 — Test API Zod schemas — validation rules
 
 ### Story 9.3: Integration Tests
 
-- [ ] 9.3.1 — AI calibration: run test dataset through Gemini, measure accuracy (target ≥95%)
-- [ ] 9.3.2 — Scraper: test content extraction against saved HTML snapshots
-- [ ] 9.3.3 — API: test all endpoints with supertest
+- [x] 9.3.1 — AI calibration: run test dataset through Gemini, measure accuracy (target ≥95%)
+- [x] 9.3.2 — Scraper: test content extraction against saved HTML snapshots
+- [x] 9.3.3 — API: test all endpoints with supertest
 
 ### Story 9.4: E2E Test
 

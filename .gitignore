@@ -5,3 +5,8 @@ dist/
 *.db-journal
 resouces
 /generated/prisma
+
+# Runtime data (never commit)
+data/
+cookies/
+logs/

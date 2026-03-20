@@ -6,11 +6,11 @@ import { NotFoundError } from "../errors.js";
 
 // ── Zod Schemas ──
 
-const jobIdParamSchema = z.object({
+export const jobIdParamSchema = z.object({
   id: z.coerce.number().int().positive(),
 });
 
-const listJobsQuerySchema = z.object({
+export const listJobsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   role: z
@@ -27,11 +27,11 @@ const listJobsQuerySchema = z.object({
   search: z.string().trim().max(200).optional(),
 });
 
-const updateJobStatusSchema = z.object({
+export const updateJobStatusSchema = z.object({
   status: z.enum(["new", "applied", "saved", "archived"]),
 });
 
-const createFeedbackSchema = z.object({
+export const createFeedbackSchema = z.object({
   feedback_type: z.enum(["relevant", "irrelevant"]),
 });
 

@@ -4,6 +4,7 @@ import { scraperState } from "../lib/scraper-state.js";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { parseSettingsRow } from "../lib/settings-helpers.js";
 import { PipelineRunner } from "../lib/pipeline-runner.js";
+import { scraperLimiter } from "../middleware/rate-limit.js";
 
 // ── Async run execution (fire-and-forget) ──
 
@@ -23,8 +24,8 @@ async function executeRun(): Promise<void> {
 
 export const scraperRouter: RouterType = Router();
 
-// POST /scraper/run — trigger async scraping run
-scraperRouter.post("/run", async (_req, res) => {
+// POST /scraper/run — trigger async scraping run (strict rate limit: 2/min)
+scraperRouter.post("/run", scraperLimiter, async (_req, res) => {
   const settings = await prisma.settings.findUnique({ where: { id: 1 } });
   if (!settings) {
     throw new NotFoundError("Settings not configured");

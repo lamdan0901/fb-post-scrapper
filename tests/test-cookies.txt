@@ -1,0 +1,5 @@
+# Netscape HTTP Cookie File
+# This is a test cookie file
+.facebook.com	TRUE	/	TRUE	2147483647	c_user	100000000
+.facebook.com	TRUE	/	TRUE	2147483647	xs	abc123:def456:1
+.facebook.com	TRUE	/	FALSE	2147483647	datr	some-datr-value
