@@ -111,43 +111,43 @@
 
 ### Story 3.1: Content Preprocessor
 
-- [ ] 3.1.1 — Create `ContentPreprocessor` in `packages/ai-filter/src/preprocessor.ts`
-- [ ] 3.1.2 — Implement `normalize(text)` — trim to 2000 chars, collapse whitespace, deduplicate emojis, normalize tech terms
-- [ ] 3.1.3 — Implement `containsTechKeywords(text)` — case-insensitive match against settings keywords
-- [ ] 3.1.4 — Implement `isBlacklisted(text)` — match against blacklist terms from settings
+- [x] 3.1.1 — Create `ContentPreprocessor` in `packages/ai-filter/src/preprocessor.ts`
+- [x] 3.1.2 — Implement `normalize(text)` — trim to 2000 chars, collapse whitespace, deduplicate emojis, normalize tech terms
+- [x] 3.1.3 — Implement `containsTechKeywords(text)` — case-insensitive match against settings keywords
+- [x] 3.1.4 — Implement `isBlacklisted(text)` — match against blacklist terms from settings
 
 ### Story 3.2: Pre-Filter (Code-Level, No API Call)
 
-- [ ] 3.2.1 — Create `PreFilter` in `packages/ai-filter/src/pre-filter.ts`
-- [ ] 3.2.2 — Implement blacklist check → discard with reason "Blacklisted company"
-- [ ] 3.2.3 — Implement tech keyword check → skip with reason "Not tech-related"
-- [ ] 3.2.4 — Return `{ shouldCallAI: boolean, skipReason?: string }`
+- [x] 3.2.1 — Create `PreFilter` in `packages/ai-filter/src/pre-filter.ts`
+- [x] 3.2.2 — Implement blacklist check → discard with reason "Blacklisted company"
+- [x] 3.2.3 — Implement tech keyword check → skip with reason "Not tech-related"
+- [x] 3.2.4 — Return `{ shouldCallAI: boolean, skipReason?: string }`
 
 ### Story 3.3: Gemini API Client
 
-- [ ] 3.3.1 — Create `GeminiClient` in `packages/ai-filter/src/gemini-client.ts`
-- [ ] 3.3.2 — Initialize with API key, model `gemini-2.0-flash`, temperature `0.2`
-- [ ] 3.3.3 — Implement 3-layer prompt assembly (system instruction, dynamic context, post content)
-- [ ] 3.3.4 — Create `PromptBuilder` in `packages/ai-filter/src/prompt-builder.ts`
-- [ ] 3.3.5 — Implement `classify(post, filterCriteria)` — call Gemini API with JSON response format
-- [ ] 3.3.6 — Validate response against Zod schema, retry up to 2 times on invalid JSON
-- [ ] 3.3.7 — Track API call count per run, enforce max 50 calls limit
+- [x] 3.3.1 — Create `GeminiClient` in `packages/ai-filter/src/gemini-client.ts`
+- [x] 3.3.2 — Initialize with API key, model `gemini-2.0-flash`, temperature `0.2`
+- [x] 3.3.3 — Implement 3-layer prompt assembly (system instruction, dynamic context, post content)
+- [x] 3.3.4 — Create `PromptBuilder` in `packages/ai-filter/src/prompt-builder.ts`
+- [x] 3.3.5 — Implement `classify(post, filterCriteria)` — call Gemini API with JSON response format
+- [x] 3.3.6 — Validate response against Zod schema, retry up to 2 times on invalid JSON
+- [x] 3.3.7 — Track API call count per run, enforce max 50 calls limit
 
 ### Story 3.4: Classification Result Schema
 
-- [ ] 3.4.1 — Create `schemas.ts` in `packages/ai-filter/src/schemas.ts`
-- [ ] 3.4.2 — Define `ClassificationResult` Zod schema (is_match, is_freelance, role, level, yoe, score, reason)
-- [ ] 3.4.3 — Export TypeScript type from Zod schema
+- [x] 3.4.1 — Create `schemas.ts` in `packages/ai-filter/src/schemas.ts`
+- [x] 3.4.2 — Define `ClassificationResult` Zod schema (is_match, is_freelance, role, level, yoe, score, reason)
+- [x] 3.4.3 — Export TypeScript type from Zod schema
 
 ### Story 3.5: AI Pipeline Orchestrator
 
-- [ ] 3.5.1 — Create `AIFilterPipeline` in `packages/ai-filter/src/pipeline.ts`
-- [ ] 3.5.2 — Accept array of `RawPost`, iterate with pre-filter → Gemini classify flow
-- [ ] 3.5.3 — Implement freelance auto-accept (bypass role/level restrictions)
-- [ ] 3.5.4 — Implement standard job matching: role + level + YOE ≤ max_yoe
-- [ ] 3.5.5 — Handle missing level/YOE: still match if role matches, mark for review
-- [ ] 3.5.6 — Check API call budget before each Gemini call, stop if exhausted
-- [ ] 3.5.7 — Return stats: `{ processed, matched, skipped, apiCallsUsed }`
+- [x] 3.5.1 — Create `AIFilterPipeline` in `packages/ai-filter/src/pipeline.ts`
+- [x] 3.5.2 — Accept array of `RawPost`, iterate with pre-filter → Gemini classify flow
+- [x] 3.5.3 — Implement freelance auto-accept (bypass role/level restrictions)
+- [x] 3.5.4 — Implement standard job matching: role + level + YOE ≤ max_yoe
+- [x] 3.5.5 — Handle missing level/YOE: still match if role matches, mark for review
+- [x] 3.5.6 — Check API call budget before each Gemini call, stop if exhausted
+- [x] 3.5.7 — Return stats: `{ processed, matched, skipped, apiCallsUsed }`
 
 ---
 

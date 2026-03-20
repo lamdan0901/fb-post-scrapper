@@ -7,5 +7,10 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.46.0",
+    "@job-alert/shared": "workspace:*",
+    "zod": "^4.3.6"
   }
 }

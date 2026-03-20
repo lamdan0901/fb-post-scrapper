@@ -46,6 +46,14 @@ export interface RawPost {
   groupUrl: string;
 }
 
+// ── AI Filter criteria (from Settings → Gemini prompt) ──
+
+export interface FilterCriteria {
+  allowedRoles: Role[];
+  allowedLevels: Level[];
+  maxYoe: number;
+}
+
 // ── AI Classification result (Gemini response) ──
 
 export interface ClassificationResult {
