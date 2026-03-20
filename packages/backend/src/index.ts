@@ -21,11 +21,21 @@ if (!process.env["API_AUTH_TOKEN"]) {
   throw new Error("API_AUTH_TOKEN environment variable must be set");
 }
 
+// Derive allowed CORS origins from env (comma-separated list).
+// Defaults to localhost:5173 (Vite dev server) when not set.
+const allowedOrigins: string[] = (
+  process.env["ALLOWED_ORIGINS"] ?? "http://localhost:5173"
+)
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 const app = express();
 
 // Global middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors({ origin: allowedOrigins }));
+// Explicit body-size limit guards against oversized payload attacks.
+app.use(express.json({ limit: "32kb" }));
 
 // Health check (unauthenticated)
 app.get("/api/health", (_req, res) => {

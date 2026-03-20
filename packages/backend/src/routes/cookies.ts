@@ -10,7 +10,10 @@ import { ValidationError } from "../errors.js";
 const REQUIRED_COOKIES = ["c_user", "xs"] as const;
 
 const uploadSchema = z.object({
-  content: z.string().min(1, "Cookie file content is required"),
+  content: z
+    .string()
+    .min(1, "Cookie file content is required")
+    .max(30_000, "Cookie file too large (max 30 000 characters)"),
   verify: z.boolean().optional().default(false),
 });
 

@@ -307,28 +307,28 @@
 
 ### Story 8.1: Docker Setup
 
-- [ ] 8.1.1 — Create `Dockerfile` for backend (Node.js + Playwright deps + xvfb)
-- [ ] 8.1.2 — Create `Dockerfile` for frontend (Vite build → Nginx serve)
-- [ ] 8.1.3 — Create `docker-compose.yml` with backend + frontend services, shared volumes for SQLite DB and cookies
+- [x] 8.1.1 — Create `Dockerfile` for backend (Node.js + Playwright deps, headless mode)
+- [x] 8.1.2 — Create `Dockerfile` for frontend (Vite build → Nginx serve)
+- [x] 8.1.3 — Create `docker-compose.yml` with backend + frontend services, shared volumes for SQLite DB and cookies
 
 ### Story 8.2: Nginx Configuration
 
-- [ ] 8.2.1 — Configure reverse proxy: `/` → frontend, `/api` → backend
-- [ ] 8.2.2 — Setup HTTPS with Let's Encrypt (certbot)
-- [ ] 8.2.3 — Add security headers (X-Frame-Options, CSP, etc.)
+- [x] 8.2.1 — Configure reverse proxy: `/` → frontend, `/api` → backend
+- [x] 8.2.2 — Setup HTTPS with Let's Encrypt (certbot)
+- [x] 8.2.3 — Add security headers (X-Frame-Options, CSP, etc.)
 
 ### Story 8.3: PM2 Alternative (Non-Docker)
 
-- [ ] 8.3.1 — Create `ecosystem.config.js` for PM2 (backend API + scraper/scheduler process)
-- [ ] 8.3.2 — Configure frontend static build served via Nginx
+- [x] 8.3.1 — Create `ecosystem.config.cjs` for PM2 (backend API + scraper/scheduler process)
+- [x] 8.3.2 — Configure frontend static build served via Nginx
 
 ### Story 8.4: Security Hardening
 
-- [ ] 8.4.1 — Verify API auth: bearer token from env var checked via middleware
-- [ ] 8.4.2 — Set cookie file permissions to 600
-- [ ] 8.4.3 — Add rate limiting on API endpoints
-- [ ] 8.4.4 — Add input sanitization on all endpoints
-- [ ] 8.4.5 — Audit: no credentials in logs
+- [x] 8.4.1 — Verify API auth: bearer token from env var checked via middleware
+- [x] 8.4.2 — Set cookie file permissions to 600
+- [x] 8.4.3 — Add rate limiting on API endpoints
+- [x] 8.4.4 — Add input sanitization on all endpoints
+- [x] 8.4.5 — Audit: no credentials in logs
 
 ---
 

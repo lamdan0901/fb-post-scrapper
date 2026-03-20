@@ -1,0 +1,41 @@
+# Dependencies (reinstalled in container)
+
+\*\*/node_modules
+
+# Build output (rebuilt in container)
+
+\*\*/dist
+
+# Database files
+
+_.db
+_.db-journal
+
+# Environment (bind-mounted at runtime)
+
+.env
+
+# Git
+
+.git/
+.gitignore
+
+# IDE
+
+.vscode/
+
+# Documentation & tests
+
+docs/
+tests/
+resouces/
+
+# Docker files (avoid recursive context)
+
+Dockerfile.\*
+docker-compose.yml
+
+# OS files
+
+Thumbs.db
+.DS_Store
