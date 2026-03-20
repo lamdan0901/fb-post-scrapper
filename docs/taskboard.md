@@ -203,23 +203,23 @@
 
 ### Story 5.1: Telegram Bot Client
 
-- [ ] 5.1.1 — Create `TelegramNotifier` in `packages/notifier/src/telegram.ts`
-- [ ] 5.1.2 — Implement `sendMessage(chatId, text)` — HTTP POST to Telegram Bot API
-- [ ] 5.1.3 — Use `parse_mode: "HTML"` for rich formatting
-- [ ] 5.1.4 — Handle API errors gracefully (log, don't crash)
+- [x] 5.1.1 — Create `TelegramNotifier` in `packages/notifier/src/telegram.ts`
+- [x] 5.1.2 — Implement `sendMessage(chatId, text)` — HTTP POST to Telegram Bot API
+- [x] 5.1.3 — Use `parse_mode: "HTML"` for rich formatting
+- [x] 5.1.4 — Handle API errors gracefully (log, don't crash)
 
 ### Story 5.2: Notification Formatter
 
-- [ ] 5.2.1 — Create `NotificationFormatter` in `packages/notifier/src/formatter.ts`
-- [ ] 5.2.2 — Implement `formatRunSummary(stats, topJobs)` — emoji-formatted summary with top 10 jobs + dashboard link
-- [ ] 5.2.3 — Implement anti-spam: max 10 jobs per message, include total count
+- [x] 5.2.1 — Create `NotificationFormatter` in `packages/notifier/src/formatter.ts`
+- [x] 5.2.2 — Implement `formatRunSummary(stats, topJobs)` — emoji-formatted summary with top 10 jobs + dashboard link
+- [x] 5.2.3 — Implement anti-spam: max 10 jobs per message, include total count
 
 ### Story 5.3: Alert Messages
 
-- [ ] 5.3.1 — Create `alerts.ts` in `packages/notifier/src/alerts.ts`
-- [ ] 5.3.2 — Define template: session expired alert
-- [ ] 5.3.3 — Define template: scraper failure alert
-- [ ] 5.3.4 — Define template: run complete (no matches) alert
+- [x] 5.3.1 — Create `alerts.ts` in `packages/notifier/src/alerts.ts`
+- [x] 5.3.2 — Define template: session expired alert
+- [x] 5.3.3 — Define template: scraper failure alert
+- [x] 5.3.4 — Define template: run complete (no matches) alert
 
 ---
 

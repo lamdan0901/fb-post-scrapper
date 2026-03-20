@@ -137,7 +137,11 @@ importers:
         specifier: ^8.0.1
         version: 8.0.1(@types/node@24.12.0)(esbuild@0.27.4)(jiti@2.6.1)(tsx@4.21.0)
 
-  packages/notifier: {}
+  packages/notifier:
+    dependencies:
+      '@job-alert/shared':
+        specifier: workspace:*
+        version: link:../../shared
 
   packages/scraper:
     dependencies:
