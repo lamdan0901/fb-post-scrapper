@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ── Enums ──
+
+enum Role {
+  Frontend
+  Backend
+  Fullstack
+  Mobile
+  Other
+}
+
+enum Level {
+  Fresher
+  Junior
+  Middle
+  Senior
+  Unknown
+}
+
+enum Status {
+  new
+  applied
+  saved
+  archived
+}
+
+enum FeedbackType {
+  relevant
+  irrelevant
+}
+
+// ── Models ──
+
+model Job {
+  id               Int            @id @default(autoincrement())
+  fb_post_id       String?
+  content          String
+  post_url         String
+  poster_name      String
+  poster_url       String
+  post_url_hash    String         @unique
+  content_hash     String
+  role             Role
+  level            Level
+  yoe              Int?
+  score            Int
+  reason           String
+  is_freelance     Boolean
+  status           Status         @default(new)
+  created_time_raw String
+  created_time_utc DateTime?
+  first_seen_at    DateTime
+  created_at       DateTime       @default(now())
+
+  feedbacks        UserFeedback[]
+
+  @@index([content_hash])
+  @@index([fb_post_id])
+  @@index([status])
+  @@index([role])
+  @@index([level])
+  @@index([created_at])
+}
+
+model Settings {
+  id              Int    @id @default(1)
+  target_groups   String // JSON array of group URLs
+  target_keywords String // JSON array of keyword strings
+  blacklist       String // JSON array of blacklist terms
+  max_yoe         Int    @default(5)
+  cron_schedule   String @default("0 */4 * * *")
+}
+
+model UserFeedback {
+  id            Int          @id @default(autoincrement())
+  job_id        Int
+  feedback_type FeedbackType
+  created_at    DateTime     @default(now())
+
+  job           Job          @relation(fields: [job_id], references: [id])
+
+  @@index([job_id])
+}

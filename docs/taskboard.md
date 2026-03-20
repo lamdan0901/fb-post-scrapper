@@ -24,22 +24,22 @@
 
 ### Story 1.2: Database Schema (Prisma + SQLite)
 
-- [ ] 1.2.1 — Install Prisma and initialize `prisma/schema.prisma` with SQLite datasource
-- [ ] 1.2.2 — Define `Jobs` model with all fields (fb_post_id, content, post_url, poster_name, poster_url, post_url_hash, content_hash, role, level, yoe, score, reason, is_freelance, status, timestamps)
-- [ ] 1.2.3 — Define `Role` enum (Frontend, Backend, Fullstack, Mobile, Other)
-- [ ] 1.2.4 — Define `Level` enum (Fresher, Junior, Middle, Senior, Unknown)
-- [ ] 1.2.5 — Define `Status` enum (new, applied, saved, archived)
-- [ ] 1.2.6 — Define `Settings` model (target_groups, target_keywords, blacklist, max_yoe, cron_schedule)
-- [ ] 1.2.7 — Define `UserFeedback` model with FK to Jobs and `FeedbackType` enum
-- [ ] 1.2.8 — Add indexes on Jobs: post_url_hash, content_hash, fb_post_id, status, role, level, created_at
-- [ ] 1.2.9 — Create `prisma/seed.ts` with default Settings (5 sample groups, keywords, blacklist)
-- [ ] 1.2.10 — Run `npx prisma migrate dev` and verify migration + seed
+- [x] 1.2.1 — Install Prisma and initialize `prisma/schema.prisma` with SQLite datasource
+- [x] 1.2.2 — Define `Jobs` model with all fields (fb_post_id, content, post_url, poster_name, poster_url, post_url_hash, content_hash, role, level, yoe, score, reason, is_freelance, status, timestamps)
+- [x] 1.2.3 — Define `Role` enum (Frontend, Backend, Fullstack, Mobile, Other)
+- [x] 1.2.4 — Define `Level` enum (Fresher, Junior, Middle, Senior, Unknown)
+- [x] 1.2.5 — Define `Status` enum (new, applied, saved, archived)
+- [x] 1.2.6 — Define `Settings` model (target_groups, target_keywords, blacklist, max_yoe, cron_schedule)
+- [x] 1.2.7 — Define `UserFeedback` model with FK to Jobs and `FeedbackType` enum
+- [x] 1.2.8 — Add indexes on Jobs: post_url_hash, content_hash, fb_post_id, status, role, level, created_at
+- [x] 1.2.9 — Create `prisma/seed.ts` with default Settings (5 sample groups, keywords, blacklist)
+- [x] 1.2.10 — Run `npx prisma migrate dev` and verify migration + seed
 
 ### Story 1.3: Environment Configuration
 
-- [ ] 1.3.1 — Create `.env.example` with all required variables (DATABASE_URL, GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, COOKIE_PATH, PORT, NODE_ENV, API_AUTH_TOKEN)
-- [ ] 1.3.2 — Setup `dotenv` loading in backend entry point
-- [ ] 1.3.3 — Add `.env` to `.gitignore`
+- [x] 1.3.1 — Create `.env.example` with all required variables (DATABASE_URL, GEMINI_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, COOKIE_PATH, PORT, NODE_ENV, API_AUTH_TOKEN)
+- [x] 1.3.2 — Setup `dotenv` loading in backend entry point
+- [x] 1.3.3 — Add `.env` to `.gitignore`
 
 ---
 
@@ -50,57 +50,57 @@
 
 ### Story 2.1: Cookie-Based Authentication Module
 
-- [ ] 2.1.1 — Create `CookieManager` class in `packages/scraper/src/cookie-manager.ts`
-- [ ] 2.1.2 — Implement `loadCookies(filePath)` — read JSON file, validate `c_user` and `xs` cookies exist
-- [ ] 2.1.3 — Implement `applyCookies(context)` — inject cookies into Playwright BrowserContext
-- [ ] 2.1.4 — Implement `validateSession(page)` — navigate to facebook.com, verify logged-in state
-- [ ] 2.1.5 — Define and throw `SessionExpiredError` on invalid session
+- [x] 2.1.1 — Create `CookieManager` class in `packages/scraper/src/cookie-manager.ts`
+- [x] 2.1.2 — Implement `loadCookies(filePath)` — read Netscape .txt file, validate `c_user` and `xs` cookies exist
+- [x] 2.1.3 — Implement `applyCookies(context)` — inject cookies into Playwright BrowserContext
+- [x] 2.1.4 — Implement `validateSession(page)` — navigate to facebook.com, verify logged-in state
+- [x] 2.1.5 — Define and throw `SessionExpiredError` on invalid session
 
 ### Story 2.2: Anti-Detection Utilities
 
-- [ ] 2.2.1 — Create `HumanBehavior` module in `packages/scraper/src/human-behavior.ts`
-- [ ] 2.2.2 — Implement `randomDelay(min=2000, max=5000)`
-- [ ] 2.2.3 — Implement `randomViewport()` — generate viewport 1200–1920 width, 800–1080 height
-- [ ] 2.2.4 — Implement `smoothScroll(page, distance)` — incremental scroll with random pauses
-- [ ] 2.2.5 — Implement `randomMouseMovement(page)`
-- [ ] 2.2.6 — Configure browser launch: disable automation flags, random user-agent rotation (5–10 UAs)
+- [x] 2.2.1 — Create `HumanBehavior` module in `packages/scraper/src/human-behavior.ts`
+- [x] 2.2.2 — Implement `randomDelay(min=2000, max=5000)`
+- [x] 2.2.3 — Implement `randomViewport()` — generate viewport 1200–1920 width, 800–1080 height
+- [x] 2.2.4 — Implement `smoothScroll(page, distance)` — incremental scroll with random pauses
+- [x] 2.2.5 — Implement `randomMouseMovement(page)`
+- [x] 2.2.6 — Configure browser launch: disable automation flags, random user-agent rotation (5–10 UAs)
 
 ### Story 2.3: Group Navigation & Post Extraction
 
-- [ ] 2.3.1 — Create `GroupScraper` class in `packages/scraper/src/group-scraper.ts`
-- [ ] 2.3.2 — Implement navigation to group URL with `?sorting_setting=CHRONOLOGICAL`
-- [ ] 2.3.3 — Implement feed wait + incremental scrolling to collect post elements
-- [ ] 2.3.4 — Implement "See more" click handling with retry logic
-- [ ] 2.3.5 — Extract per-post data: full text, post URL, poster name, poster profile URL, raw timestamp
-- [ ] 2.3.6 — Define `RawPost` type and return array of `RawPost`
-- [ ] 2.3.7 — Implement stop conditions: `maxPosts` reached or no more posts loading
+- [x] 2.3.1 — Create `GroupScraper` class in `packages/scraper/src/group-scraper.ts`
+- [x] 2.3.2 — Implement navigation to group URL with `?sorting_setting=CHRONOLOGICAL`
+- [x] 2.3.3 — Implement feed wait + incremental scrolling to collect post elements
+- [x] 2.3.4 — Implement "See more" click handling with retry logic
+- [x] 2.3.5 — Extract per-post data: full text, post URL, poster name, poster profile URL, raw timestamp
+- [x] 2.3.6 — Define `RawPost` type and return array of `RawPost`
+- [x] 2.3.7 — Implement stop conditions: `maxPosts` reached or no more posts loading
 
 ### Story 2.4: Timestamp Parsing
 
-- [ ] 2.4.1 — Create `TimestampParser` in `packages/scraper/src/timestamp-parser.ts`
-- [ ] 2.4.2 — Handle relative formats: `2h`, `3d`, `1w`, `Just now`, `2 hrs`, `3 mins`
-- [ ] 2.4.3 — Handle absolute formats: `Yesterday at 10:00 AM`, `March 10 at 2:00 PM`, `March 10, 2026`
-- [ ] 2.4.4 — Handle Vietnamese timestamp formats
-- [ ] 2.4.5 — Output UTC datetime; store `created_time_raw`, `created_time_utc`, `first_seen_at`
+- [x] 2.4.1 — Create `TimestampParser` in `packages/scraper/src/timestamp-parser.ts`
+- [x] 2.4.2 — Handle relative formats: `2h`, `3d`, `1w`, `Just now`, `2 hrs`, `3 mins`
+- [x] 2.4.3 — Handle absolute formats: `Yesterday at 10:00 AM`, `March 10 at 2:00 PM`, `March 10, 2026`
+- [x] 2.4.4 — Handle Vietnamese timestamp formats
+- [x] 2.4.5 — Output UTC datetime; store `created_time_raw`, `created_time_utc`, `first_seen_at`
 
 ### Story 2.5: Deduplication Module
 
-- [ ] 2.5.1 — Create `Deduplicator` in `packages/scraper/src/deduplicator.ts`
-- [ ] 2.5.2 — Implement `generatePostUrlHash(url)` — SHA-256 of normalized URL
-- [ ] 2.5.3 — Implement `generateContentHash(content)` — SHA-256 of normalized content (lowercase, strip whitespace)
-- [ ] 2.5.4 — Implement `isDuplicate(post)` with priority checks: fb_post_id → post_url_hash → content_hash
-- [ ] 2.5.5 — Use `first_seen_at` to prevent resurfaced post reprocessing
+- [x] 2.5.1 — Create `Deduplicator` in `packages/scraper/src/deduplicator.ts`
+- [x] 2.5.2 — Implement `generatePostUrlHash(url)` — SHA-256 of normalized URL
+- [x] 2.5.3 — Implement `generateContentHash(content)` — SHA-256 of normalized content (lowercase, strip whitespace)
+- [x] 2.5.4 — Implement `isDuplicate(post)` with priority checks: fb_post_id → post_url_hash → content_hash
+- [x] 2.5.5 — Use `first_seen_at` to prevent resurfaced post reprocessing
 
 ### Story 2.6: Scraper Orchestrator & Error Handling
 
-- [ ] 2.6.1 — Create `ScraperOrchestrator` in `packages/scraper/src/orchestrator.ts`
-- [ ] 2.6.2 — Load target groups and settings from DB
-- [ ] 2.6.3 — Implement per-group scrape loop with retry-once on failure
-- [ ] 2.6.4 — Run deduplication against DB for each group's posts
-- [ ] 2.6.5 — Handle `SessionExpiredError` → stop all scraping, trigger Telegram alert
-- [ ] 2.6.6 — Handle group scrape failure → log, continue to next group, send Telegram alert
-- [ ] 2.6.7 — Handle DOM change detection (no posts found) → alert
-- [ ] 2.6.8 — Enforce limits: max 50 posts per run, max 10 groups per cycle
+- [x] 2.6.1 — Create `ScraperOrchestrator` in `packages/scraper/src/orchestrator.ts`
+- [x] 2.6.2 — Load target groups and settings from DB
+- [x] 2.6.3 — Implement per-group scrape loop with retry-once on failure
+- [x] 2.6.4 — Run deduplication against DB for each group's posts
+- [x] 2.6.5 — Handle `SessionExpiredError` → stop all scraping, trigger Telegram alert
+- [x] 2.6.6 — Handle group scrape failure → log, continue to next group, send Telegram alert
+- [x] 2.6.7 — Handle DOM change detection (no posts found) → alert
+- [x] 2.6.8 — Enforce limits: max 50 posts per run, max 10 groups per cycle
 
 ---
 

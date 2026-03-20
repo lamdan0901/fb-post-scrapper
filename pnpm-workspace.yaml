@@ -6,3 +6,6 @@ ignoredBuiltDependencies:
   - '@prisma/engines'
   - esbuild
   - prisma
+
+onlyBuiltDependencies:
+  - better-sqlite3

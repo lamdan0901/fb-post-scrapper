@@ -14,8 +14,15 @@
     "clean": "pnpm -r exec rimraf dist"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "dotenv": "^17.3.1",
     "prisma": "^7.5.0",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.5.0",
+    "@prisma/client": "^7.5.0",
+    "better-sqlite3": "^12.8.0"
   }
 }
