@@ -30,11 +30,10 @@ STEP 1: Detect if this is a job post
 
 STEP 2: Detect if freelance/project-based
 - If YES:
-  - is_match = true
   - is_freelance = true
-  - Skip strict filtering
+  - Still apply strict role/level/YOE filtering (same as standard jobs)
 
-STEP 3: If standard job → apply filters:
+STEP 3: Apply filters (for ALL job types including freelance):
 
 A. Role classification (choose ONE):
 - Frontend

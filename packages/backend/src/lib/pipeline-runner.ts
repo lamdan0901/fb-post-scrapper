@@ -74,6 +74,11 @@ export class PipelineRunner {
     const scraperConfig: ScraperConfig = {
       targetGroups: settings.target_groups,
       cookiePath,
+      maxPostsPerGroup: settings.max_posts_per_group,
+      // All configured groups are always scraped
+      maxGroups: settings.target_groups.length,
+      // Total cap = posts per group × number of groups
+      maxTotalPosts: settings.max_posts_per_group * settings.target_groups.length,
     };
 
     const pipelineConfig: PipelineConfig = {
@@ -99,6 +104,35 @@ export class PipelineRunner {
 
     const scrapeResult = await orchestrator.run(scraperConfig);
 
+    // ── 2b. Apply post-age filter ──
+    const { scrape_lookback_hours, scrape_date_from, scrape_date_to } =
+      settings;
+    if (
+      scrape_lookback_hours != null ||
+      scrape_date_from != null ||
+      scrape_date_to != null
+    ) {
+      const from =
+        scrape_lookback_hours != null
+          ? new Date(Date.now() - scrape_lookback_hours * 60 * 60 * 1000)
+          : scrape_date_from != null
+            ? new Date(scrape_date_from)
+            : null;
+      const to =
+        scrape_date_to != null ? new Date(scrape_date_to) : null;
+
+      scrapeResult.newPosts = scrapeResult.newPosts.filter((p) => {
+        if (!p.createdTimeUtc) return true; // no timestamp — keep (benefit of the doubt)
+        if (from && p.createdTimeUtc < from) return false;
+        if (to && p.createdTimeUtc > to) return false;
+        return true;
+      });
+
+      console.log(
+        `[PipelineRunner] After time filter: ${scrapeResult.newPosts.length} posts remain`,
+      );
+    }
+
     if (scrapeResult.sessionExpired) {
       await this.notify(sessionExpiredAlert());
       console.log("[PipelineRunner] Session expired — aborting run.");
@@ -119,7 +153,43 @@ export class PipelineRunner {
       };
     }
 
-    // ── 3. AI Filter ──
+    // ── 3. Save raw posts to DB (before AI filter) ──
+    const rawPostIds: number[] = [];
+    if (scrapeResult.newPosts.length > 0) {
+      for (const post of scrapeResult.newPosts) {
+        try {
+          const created = await this.prisma.rawPost.create({
+            data: {
+              fb_post_id: post.fbPostId ?? null,
+              content: post.content,
+              post_url: post.postUrl,
+              poster_name: post.posterName,
+              poster_url: post.posterProfileUrl,
+              post_url_hash: post.postUrlHash,
+              content_hash: post.contentHash,
+              group_url: post.groupUrl,
+              created_time_raw: post.createdTimeRaw,
+              created_time_utc: post.createdTimeUtc ?? null,
+              first_seen_at: post.firstSeenAt,
+            },
+          });
+          rawPostIds.push(created.id);
+        } catch (error: unknown) {
+          if (
+            error instanceof Error &&
+            error.message.includes("UNIQUE constraint failed")
+          ) {
+            continue;
+          }
+          throw error;
+        }
+      }
+      console.log(
+        `[PipelineRunner] Saved ${rawPostIds.length} raw posts before AI filtering`,
+      );
+    }
+
+    // ── 4. AI Filter ──
     let aiStats: PipelineStats = {
       total: 0,
       processed: 0,
@@ -141,7 +211,7 @@ export class PipelineRunner {
       matchedJobs = aiResult.matchedJobs;
     }
 
-    // ── 4. Save matched jobs to DB ──
+    // ── 5. Save matched jobs to DB ──
     let savedCount = 0;
     if (matchedJobs.length > 0) {
       const jobData = matchedJobs.map((job) => ({
@@ -189,7 +259,17 @@ export class PipelineRunner {
       }
     }
 
-    // ── 5. Notify ──
+    // ── 6. Delete raw posts (processing complete) ──
+    if (rawPostIds.length > 0) {
+      await this.prisma.rawPost.deleteMany({
+        where: { id: { in: rawPostIds } },
+      });
+      console.log(
+        `[PipelineRunner] Cleaned up ${rawPostIds.length} raw posts after processing`,
+      );
+    }
+
+    // ── 7. Notify ──
     const runStats: PipelineRunStats = {
       scrape: scrapeResult.stats,
       ai: aiStats,
@@ -214,7 +294,7 @@ export class PipelineRunner {
       await this.notify(runCompleteNoMatchesAlert(aiStats));
     }
 
-    // ── 6. Log stats ──
+    // ── 8. Log stats ──
     console.log("[PipelineRunner] Run complete:", {
       groups: `${scrapeResult.stats.groupsSucceeded}/${scrapeResult.stats.groupsAttempted}`,
       scraped: scrapeResult.stats.totalScraped,

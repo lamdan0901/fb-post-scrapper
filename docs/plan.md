@@ -226,7 +226,7 @@ Create `PreFilter`:
 
 Create `GeminiClient`:
 
-- Initialize with API key, model (`gemini-2.0-flash`), temperature: `0.2`
+- Initialize with API key, model (`gemini-3-flash-preview`), temperature: `0.2`
 - `classify(post: string, filteringCriteria: FilterCriteria)`:
   1. Assemble 3-layer prompt:
      - **Layer 1** — System instruction (fixed rules from prompt design doc)
@@ -687,7 +687,7 @@ Phase 9 (Testing) runs in parallel with all phases
 
 2. **Facebook DOM Stability** — Facebook frequently changes DOM structure. Build a selector abstraction layer where selectors are defined in a config file for easy updates without code changes. Include DOM change detection alerts when expected elements aren't found.
 
-3. **Gemini Model Selection** — Start with `gemini-2.0-flash` for cost efficiency. Upgrade to `gemini-2.0-pro` only if calibration accuracy falls below 95%.
+3. **Gemini Model Selection** — Start with `gemini-3-flash-preview` for cost efficiency. Upgrade to `gemini-2.0-pro` only if calibration accuracy falls below 95%.
 
 4. **Scope Exclusions** — No real-time websockets, no multi-user support, no advanced analytics. These are future enhancements if needed.
 

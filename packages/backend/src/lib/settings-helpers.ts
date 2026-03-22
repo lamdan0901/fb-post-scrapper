@@ -10,6 +10,10 @@ export interface ParsedSettings {
   allowed_levels: Level[];
   max_yoe: number;
   cron_schedule: string;
+  scrape_lookback_hours: number | null;
+  scrape_date_from: string | null;
+  scrape_date_to: string | null;
+  max_posts_per_group: number;
 }
 
 export function parseSettingsRow(row: Settings): ParsedSettings {
@@ -22,5 +26,9 @@ export function parseSettingsRow(row: Settings): ParsedSettings {
     allowed_levels: JSON.parse(row.allowed_levels) as Level[],
     max_yoe: row.max_yoe,
     cron_schedule: row.cron_schedule,
+    scrape_lookback_hours: row.scrape_lookback_hours ?? null,
+    scrape_date_from: row.scrape_date_from ?? null,
+    scrape_date_to: row.scrape_date_to ?? null,
+    max_posts_per_group: row.max_posts_per_group,
   };
 }

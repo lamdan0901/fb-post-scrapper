@@ -49,31 +49,65 @@ const VALID_LEVELS = Object.values(Level) as [string, ...string[]];
 
 // ── Zod Schemas ──
 
-export const updateSettingsSchema = z.object({
-  target_groups: z
-    .array(z.string().url("Each group must be a valid URL"))
-    .min(1, "At least one target group is required"),
-  target_keywords: z
-    .array(z.string().trim().min(1, "Keyword must not be empty"))
-    .min(1, "At least one keyword is required"),
-  blacklist: z.array(
-    z.string().trim().min(1, "Blacklist term must not be empty"),
-  ),
-  allowed_roles: z
-    .array(z.enum(VALID_ROLES))
-    .min(1, "At least one role is required"),
-  allowed_levels: z
-    .array(z.enum(VALID_LEVELS))
-    .min(1, "At least one level is required"),
-  max_yoe: z.number().int().positive("max_yoe must be a positive integer"),
-  cron_schedule: z
-    .string()
-    .trim()
-    .refine(
-      isValidCron,
-      "Must be a valid 5-field cron expression with values in range",
+export const updateSettingsSchema = z
+  .object({
+    target_groups: z
+      .array(z.string().url("Each group must be a valid URL"))
+      .min(1, "At least one target group is required"),
+    target_keywords: z
+      .array(z.string().trim().min(1, "Keyword must not be empty"))
+      .min(1, "At least one keyword is required"),
+    blacklist: z.array(
+      z.string().trim().min(1, "Blacklist term must not be empty"),
     ),
-});
+    allowed_roles: z
+      .array(z.enum(VALID_ROLES))
+      .min(1, "At least one role is required"),
+    allowed_levels: z
+      .array(z.enum(VALID_LEVELS))
+      .min(1, "At least one level is required"),
+    max_yoe: z.number().int().positive("max_yoe must be a positive integer"),
+    cron_schedule: z
+      .string()
+      .trim()
+      .refine(
+        isValidCron,
+        "Must be a valid 5-field cron expression with values in range",
+      ),
+    scrape_lookback_hours: z
+      .number()
+      .int()
+      .positive("Must be a positive integer")
+      .nullable()
+      .optional(),
+    scrape_date_from: z
+      .string()
+      .datetime({ message: "Must be a valid ISO date" })
+      .nullable()
+      .optional(),
+    scrape_date_to: z
+      .string()
+      .datetime({ message: "Must be a valid ISO date" })
+      .nullable()
+      .optional(),
+    max_posts_per_group: z
+      .number()
+      .int()
+      .min(1, "Must be at least 1")
+      .max(200, "Must be at most 200"),
+  })
+  .refine(
+    (d) => {
+      const hasLookback = d.scrape_lookback_hours != null;
+      const hasRange =
+        d.scrape_date_from != null || d.scrape_date_to != null;
+      return !(hasLookback && hasRange);
+    },
+    {
+      message:
+        "Cannot set both a lookback window and a date range simultaneously",
+    },
+  );
 
 // ── Router ──
 
@@ -102,11 +136,19 @@ settingsRouter.put("/", async (req, res) => {
       allowed_levels: JSON.stringify(body.allowed_levels),
       max_yoe: body.max_yoe,
       cron_schedule: body.cron_schedule,
+      scrape_lookback_hours: body.scrape_lookback_hours ?? null,
+      scrape_date_from: body.scrape_date_from ?? null,
+      scrape_date_to: body.scrape_date_to ?? null,
+      max_posts_per_group: body.max_posts_per_group,
     },
   });
 
-  // Re-register cron job if schedule changed
-  if (body.cron_schedule !== scheduler.getExpression()) {
+  // If the cron schedule changed and the scheduler is active, restart it
+  // with the new expression. If not active, leave it for manual control.
+  if (
+    scheduler.isScheduled() &&
+    body.cron_schedule !== scheduler.getExpression()
+  ) {
     scheduler.start(body.cron_schedule);
   }
 

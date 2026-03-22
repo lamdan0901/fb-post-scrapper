@@ -13,6 +13,9 @@ import {
   updateSettings,
   triggerScraper,
   fetchScraperStatus,
+  fetchCronStatus,
+  startCron,
+  stopCron,
   uploadCookies,
   type JobsQuery,
   type JobsResponse,
@@ -21,6 +24,7 @@ import {
   type UpdateSettingsBody,
   type ScraperRunResponse,
   type ScraperStatus,
+  type CronStatus,
   type CookieUploadResponse,
 } from "./api";
 
@@ -30,6 +34,7 @@ export const queryKeys = {
   jobs: (query: JobsQuery) => ["jobs", query] as const,
   settings: ["settings"] as const,
   scraperStatus: ["scraper-status"] as const,
+  cronStatus: ["cron-status"] as const,
 };
 
 // ── Jobs ──
@@ -107,6 +112,36 @@ export function useTriggerScraper() {
     mutationFn: triggerScraper,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
+    },
+  });
+}
+
+// ── Cron ──
+
+export function useCronStatus(options?: Partial<UseQueryOptions<CronStatus>>) {
+  return useQuery({
+    queryKey: queryKeys.cronStatus,
+    queryFn: fetchCronStatus,
+    ...options,
+  });
+}
+
+export function useStartCron() {
+  const queryClient = useQueryClient();
+  return useMutation<CronStatus, Error>({
+    mutationFn: startCron,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronStatus });
+    },
+  });
+}
+
+export function useStopCron() {
+  const queryClient = useQueryClient();
+  return useMutation<CronStatus, Error>({
+    mutationFn: stopCron,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cronStatus });
     },
   });
 }

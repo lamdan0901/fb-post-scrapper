@@ -7,6 +7,7 @@ import { jobsRouter } from "./routes/jobs.js";
 import { settingsRouter } from "./routes/settings.js";
 import { scraperRouter } from "./routes/scraper.js";
 import { cookiesRouter } from "./routes/cookies.js";
+import { rawPostsRouter } from "./routes/raw-posts.js";
 
 /**
  * Build and return the configured Express application.
@@ -42,6 +43,7 @@ export function createApp(): express.Express {
   api.use("/settings", settingsRouter);
   api.use("/scraper", scraperRouter); // scraperLimiter is applied inline on POST /run
   api.use("/cookies", cookiesRouter);
+  api.use("/raw-posts", rawPostsRouter);
   app.use("/api", api);
 
   // Global error handler (must be last)

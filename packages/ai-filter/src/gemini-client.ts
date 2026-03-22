@@ -26,12 +26,48 @@ export interface GeminiClientConfig {
   model?: string;
   temperature?: number;
   maxCallsPerRun?: number;
+  /** Max requests per minute. Defaults to 5 (Gemini free-tier limit). */
+  requestsPerMinute?: number;
 }
 
-const DEFAULT_MODEL = "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-3-flash-preview";
 const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_CALLS = 50;
 const MAX_RETRIES = 2;
+const DEFAULT_RPM = 5;
+
+// ── Rate Limiter (sliding window) ──
+
+class RateLimiter {
+  private readonly timestamps: number[] = [];
+  private readonly maxRequests: number;
+  private readonly windowMs = 60_000; // 1 minute
+
+  constructor(maxRequestsPerMinute: number) {
+    this.maxRequests = maxRequestsPerMinute;
+  }
+
+  /** Wait until a request slot is available, then record the timestamp. */
+  async acquire(): Promise<void> {
+    while (true) {
+      const now = Date.now();
+      // Remove timestamps outside the window
+      while (
+        this.timestamps.length > 0 &&
+        this.timestamps[0]! <= now - this.windowMs
+      ) {
+        this.timestamps.shift();
+      }
+      if (this.timestamps.length < this.maxRequests) {
+        this.timestamps.push(now);
+        return;
+      }
+      // Wait until the oldest request exits the window + small buffer
+      const waitMs = this.timestamps[0]! - (now - this.windowMs) + 500;
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+}
 
 /** Gemini-compatible response schema (OpenAPI-style, not Zod). */
 const RESPONSE_SCHEMA = {
@@ -70,6 +106,7 @@ export class GeminiClient {
   private readonly temperature: number;
   private readonly maxCallsPerRun: number;
   private readonly promptBuilder: PromptBuilder;
+  private readonly rateLimiter: RateLimiter;
   private callCount = 0;
 
   constructor(config: GeminiClientConfig) {
@@ -78,6 +115,7 @@ export class GeminiClient {
     this.temperature = config.temperature ?? DEFAULT_TEMPERATURE;
     this.maxCallsPerRun = config.maxCallsPerRun ?? DEFAULT_MAX_CALLS;
     this.promptBuilder = new PromptBuilder();
+    this.rateLimiter = new RateLimiter(config.requestsPerMinute ?? DEFAULT_RPM);
   }
 
   /** Reset API call counter. Call at the start of each pipeline run. */
@@ -122,18 +160,35 @@ export class GeminiClient {
         throw new GeminiCallBudgetExhaustedError(this.maxCallsPerRun);
       }
 
+      // Respect rate limit before making the request
+      await this.rateLimiter.acquire();
       this.callCount++;
 
-      const response = await this.ai.models.generateContent({
-        model: this.model,
-        contents: userPrompt,
-        config: {
-          systemInstruction,
-          temperature: this.temperature,
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      });
+      let response;
+      try {
+        response = await this.ai.models.generateContent({
+          model: this.model,
+          contents: userPrompt,
+          config: {
+            systemInstruction,
+            temperature: this.temperature,
+            responseMimeType: "application/json",
+            responseSchema: RESPONSE_SCHEMA,
+          },
+        });
+      } catch (err: unknown) {
+        // Handle 429 rate-limit errors with retry
+        if (this.isRateLimitError(err)) {
+          const retryAfterMs = this.extractRetryDelay(err) ?? 35_000;
+          console.warn(
+            `[GeminiClient] Rate limited (429). Waiting ${Math.ceil(retryAfterMs / 1000)}s before retry…`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
 
       const text = response.text;
       if (!text) {
@@ -152,5 +207,33 @@ export class GeminiClient {
     throw new GeminiClassificationError(
       `Failed to get valid classification after ${MAX_RETRIES + 1} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     );
+  }
+
+  /** Check if an error is a 429 / RESOURCE_EXHAUSTED rate-limit error. */
+  private isRateLimitError(err: unknown): boolean {
+    if (err && typeof err === "object") {
+      const statusCode =
+        (err as Record<string, unknown>).status ??
+        (err as Record<string, unknown>).statusCode ??
+        (err as Record<string, unknown>).httpStatusCode;
+      if (statusCode === 429) return true;
+
+      const message = (err as Record<string, unknown>).message;
+      if (typeof message === "string" && message.includes("RESOURCE_EXHAUSTED"))
+        return true;
+    }
+    return false;
+  }
+
+  /** Extract retry delay in ms from a rate-limit error, if available. */
+  private extractRetryDelay(err: unknown): number | undefined {
+    const message =
+      err && typeof err === "object"
+        ? String((err as Record<string, unknown>).message ?? "")
+        : "";
+    // Match "Please retry in 34.445s" or "retry in 34s" patterns
+    const match = message.match(/retry in (\d+(?:\.\d+)?)s/i);
+    if (match) return Math.ceil(Number(match[1]) * 1000) + 1000; // add 1s buffer
+    return undefined;
   }
 }

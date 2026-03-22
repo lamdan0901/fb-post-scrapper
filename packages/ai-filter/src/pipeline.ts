@@ -148,22 +148,16 @@ export class AIFilterPipeline {
    * provides role/level/yoe extraction only.
    *
    * Rules:
-   * 1. Freelance/project-based → auto-accept (bypass role/level/YOE)
-   * 2. Role must be in allowedRoles
-   * 3. Level "Unknown" → accept if role matches (missing data tolerance)
-   * 4. Level must be in allowedLevels
-   * 5. YOE null → accept (missing data tolerance); otherwise YOE ≤ maxYoe
+   * 1. Role must be in allowedRoles (applies to freelance posts too)
+   * 2. Level "Unknown" → accept if role matches (missing data tolerance)
+   * 3. Level must be in allowedLevels
+   * 4. YOE null → accept (missing data tolerance); otherwise YOE ≤ maxYoe
    */
   private isMatch(
     result: ClassificationResult,
     criteria: FilterCriteria,
   ): boolean {
-    // Freelance auto-accept
-    if (result.isFreelance) {
-      return true;
-    }
-
-    // Role must match
+    // Role must match (no bypass for freelance — strict filtering applies to all job types)
     if (!criteria.allowedRoles.includes(result.role)) {
       return false;
     }

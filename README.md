@@ -7,7 +7,7 @@ Automatically scrapes IT job posts from Facebook groups, classifies them with Go
 ## Features
 
 - **Playwright scraper** — cookie-based authentication, anti-detection (random delays, viewport, scroll, user-agent rotation), chronological feed navigation
-- **Two-stage AI filter** — code-level keyword/blacklist pre-filter (no API call), then Gemini `gemini-2.0-flash` classification (role, level, YOE, relevance score)
+- **Two-stage AI filter** — code-level keyword/blacklist pre-filter (no API call), then Gemini `gemini-3-flash-preview` classification (role, level, YOE, relevance score)
 - **Deduplication** — SHA-256 hashes of post URL and content prevent re-processing resurfaced posts
 - **React dashboard** — filter by role/level/freelance/status, keyword highlighting, status transitions (Apply / Save / Archive), feedback buttons
 - **Telegram notifications** — run summary with top 10 matched jobs; alerts for session expiry and scraper failures
@@ -21,7 +21,7 @@ Automatically scrapes IT job posts from Facebook groups, classifies them with Go
 | Layer             | Technology                                                        |
 | ----------------- | ----------------------------------------------------------------- |
 | Scraper / Backend | Node.js ≥ 20, TypeScript, Express 5, Playwright                   |
-| AI                | Google Gemini API (`gemini-2.0-flash`, temp 0.2)                  |
+| AI                | Google Gemini API (`gemini-3-flash-preview`, temp 0.2)            |
 | Database          | SQLite + Prisma ORM                                               |
 | Frontend          | React 19, Vite, Tailwind CSS v4, TanStack Query 5, React Router 7 |
 | Notifications     | Telegram Bot API                                                  |
@@ -65,7 +65,15 @@ cd job-alert-2
 pnpm install
 ```
 
-### 2. Configure environment
+### 2. Install Playwright browsers
+
+The scraper uses Playwright to launch a headless Chromium browser. After `pnpm install`, download the required browser binaries:
+
+```bash
+pnpm exec playwright install
+```
+
+### 3. Configure environment
 
 ```bash
 cp .env.example .env
@@ -88,7 +96,7 @@ Edit `.env` and fill in every value:
 
 > **`API_AUTH_TOKEN` is required.** The backend will crash on startup if it is not set.
 
-### 3. Migrate & seed the database
+### 4. Migrate & seed the database
 
 ```bash
 pnpm exec prisma migrate dev
@@ -97,11 +105,11 @@ pnpm exec prisma db seed
 
 The seed creates a default `Settings` row with 5 sample Facebook groups, keywords, and a blacklist.
 
-### 4. Place your Facebook cookies
+### 5. Place your Facebook cookies
 
 Follow steps in [Cookie Setup](#cookie-setup) and place the exported `.txt` file at the path you set in `COOKIE_PATH`.
 
-### 5. Start the dev servers
+### 6. Start the dev servers
 
 Open two terminals:
 
@@ -115,7 +123,7 @@ pnpm dev:frontend         # http://localhost:5173
 
 The Vite dev server proxies `/api/*` requests to the backend automatically — open `http://localhost:5173` in your browser.
 
-### 6. Trigger your first scrape
+### 7. Trigger your first scrape
 
 Either wait for the cron (default: every 4 hours) or hit the **Manual Scrape** button on the Settings page, or make a direct API call:
 

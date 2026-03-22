@@ -5,6 +5,7 @@ import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { parseSettingsRow } from "../lib/settings-helpers.js";
 import { PipelineRunner } from "../lib/pipeline-runner.js";
 import { scraperLimiter } from "../middleware/rate-limit.js";
+import { scheduler } from "../lib/scheduler.js";
 
 // ── Async run execution (fire-and-forget) ──
 
@@ -60,4 +61,36 @@ scraperRouter.get("/status", (_req, res) => {
     return;
   }
   res.json(state);
+});
+
+// ── Cron scheduler control ──
+
+// GET /scraper/cron/status — return whether the cron job is active
+scraperRouter.get("/cron/status", (_req, res) => {
+  res.json({
+    active: scheduler.isScheduled(),
+    expression: scheduler.getExpression(),
+  });
+});
+
+// POST /scraper/cron/start — start cron with the schedule from settings
+scraperRouter.post("/cron/start", async (_req, res) => {
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  if (!settings) {
+    throw new NotFoundError("Settings not configured");
+  }
+
+  const parsed = parseSettingsRow(settings);
+  if (!parsed.cron_schedule) {
+    throw new ValidationError("No cron schedule configured in settings");
+  }
+
+  scheduler.start(parsed.cron_schedule);
+  res.json({ active: true, expression: parsed.cron_schedule });
+});
+
+// POST /scraper/cron/stop — stop the cron job
+scraperRouter.post("/cron/stop", (_req, res) => {
+  scheduler.stop();
+  res.json({ active: false, expression: null });
 });

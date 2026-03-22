@@ -53,6 +53,10 @@ export interface Settings {
   allowed_levels: Level[];
   max_yoe: number;
   cron_schedule: string;
+  scrape_lookback_hours: number | null;
+  scrape_date_from: string | null;
+  scrape_date_to: string | null;
+  max_posts_per_group: number;
 }
 
 export interface UpdateSettingsBody {
@@ -63,6 +67,10 @@ export interface UpdateSettingsBody {
   allowed_levels: Level[];
   max_yoe: number;
   cron_schedule: string;
+  scrape_lookback_hours: number | null;
+  scrape_date_from: string | null;
+  scrape_date_to: string | null;
+  max_posts_per_group: number;
 }
 
 export interface ScraperRunResponse {
@@ -87,6 +95,11 @@ export interface ScraperStatus {
 export interface CookieUploadResponse {
   valid: boolean;
   message: string;
+}
+
+export interface CronStatus {
+  active: boolean;
+  expression: string | null;
 }
 
 // ── API Client ──
@@ -173,6 +186,18 @@ export function triggerScraper(): Promise<ScraperRunResponse> {
 
 export function fetchScraperStatus(): Promise<ScraperStatus> {
   return request<ScraperStatus>("/scraper/status");
+}
+
+export function fetchCronStatus(): Promise<CronStatus> {
+  return request<CronStatus>("/scraper/cron/status");
+}
+
+export function startCron(): Promise<CronStatus> {
+  return request<CronStatus>("/scraper/cron/start", { method: "POST" });
+}
+
+export function stopCron(): Promise<CronStatus> {
+  return request<CronStatus>("/scraper/cron/stop", { method: "POST" });
 }
 
 // ── Cookies ──

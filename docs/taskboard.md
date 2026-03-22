@@ -126,7 +126,7 @@
 ### Story 3.3: Gemini API Client
 
 - [x] 3.3.1 — Create `GeminiClient` in `packages/ai-filter/src/gemini-client.ts`
-- [x] 3.3.2 — Initialize with API key, model `gemini-2.0-flash`, temperature `0.2`
+- [x] 3.3.2 — Initialize with API key, model `gemini-3-flash-preview`, temperature `0.2`
 - [x] 3.3.3 — Implement 3-layer prompt assembly (system instruction, dynamic context, post content)
 - [x] 3.3.4 — Create `PromptBuilder` in `packages/ai-filter/src/prompt-builder.ts`
 - [x] 3.3.5 — Implement `classify(post, filterCriteria)` — call Gemini API with JSON response format

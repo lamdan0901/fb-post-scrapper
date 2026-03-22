@@ -15,18 +15,8 @@ if (!process.env["API_AUTH_TOKEN"]) {
 
 const app = createApp();
 
-const server = app.listen(PORT, async () => {
+const server = app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-
-  // ── Initialize cron scheduler from DB settings ──
-  try {
-    const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-    if (settings?.cron_schedule) {
-      scheduler.start(settings.cron_schedule);
-    }
-  } catch (err) {
-    console.error("Failed to initialize cron scheduler:", err);
-  }
 });
 
 // ── Graceful shutdown ──
