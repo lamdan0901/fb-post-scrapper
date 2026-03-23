@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Search } from "lucide-react";
 import { Role, Level, Status } from "@job-alert/shared";
 import type { JobsQuery } from "../lib/api";
 
@@ -43,19 +44,7 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
     <div className="flex flex-wrap items-center gap-3">
       {/* Search */}
       <div className="relative min-w-50 flex-1">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-500" />
         <input
           type="text"
           placeholder="Search jobs…"
@@ -129,6 +118,17 @@ export default function FilterBar({ filters, onChange }: FilterBarProps) {
         <option value="">Freelance: All</option>
         <option value="true">Freelance Only</option>
         <option value="false">Non-Freelance</option>
+      </select>
+
+      {/* Source */}
+      <select
+        value={filters.source ?? ""}
+        onChange={(e) => set({ source: e.target.value || undefined })}
+        className={selectClass}
+      >
+        <option value="">All Sources</option>
+        <option value="manual">Manual</option>
+        <option value="cron">Auto (Cron)</option>
       </select>
     </div>
   );

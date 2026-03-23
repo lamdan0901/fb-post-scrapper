@@ -127,8 +127,12 @@ describe("updateSettingsSchema", () => {
     blacklist: ["MLM", "Scam"],
     allowed_roles: ["Frontend", "Backend"],
     allowed_levels: ["Junior", "Middle"],
+    role_keywords: {},
+    common_rules: "",
+    role_rules: {},
     max_yoe: 3,
     cron_schedule: "0 */4 * * *",
+    max_posts_per_group: 50,
   };
 
   it("accepts a fully valid settings object", () => {

@@ -1,7 +1,21 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { toast } from "sonner";
+import {
+  Trash2,
+  ExternalLink,
+  UserCircle,
+  CheckCircle,
+  Star,
+  Archive,
+  ThumbsUp,
+  ThumbsDown,
+} from "lucide-react";
 import type { Job } from "../lib/api";
-import { useUpdateJobStatus, useCreateFeedback } from "../lib/hooks";
+import {
+  useUpdateJobStatus,
+  useCreateFeedback,
+  useDeleteJob,
+} from "../lib/hooks";
 import type { Status } from "@job-alert/shared";
 
 // ── Keyword highlighting ──
@@ -125,16 +139,29 @@ function timeAgo(dateStr: string): string {
 
 const SNIPPET_LENGTH = 200;
 
-const statusActions: { label: string; status: Status; icon: string }[] = [
-  { label: "Apply", status: "applied", icon: "✓" },
-  { label: "Save", status: "saved", icon: "★" },
-  { label: "Archive", status: "archived", icon: "▼" },
+const statusIcons: Record<string, React.ReactNode> = {
+  applied: <CheckCircle className="size-3.5" />,
+  saved: <Star className="size-3.5" />,
+  archived: <Archive className="size-3.5" />,
+};
+
+const statusActions: { label: string; status: Status }[] = [
+  { label: "Apply", status: "applied" },
+  { label: "Save", status: "saved" },
+  { label: "Archive", status: "archived" },
 ];
 
 export default function JobCard({ job }: { job: Job }) {
   const [expanded, setExpanded] = useState(false);
   const updateStatus = useUpdateJobStatus();
   const createFeedback = useCreateFeedback();
+  const deleteJobMutation = useDeleteJob();
+
+  const handleViewPost = useCallback(() => {
+    if (job.status === "new") {
+      updateStatus.mutate({ id: job.id, status: "viewed" });
+    }
+  }, [job.id, job.status, updateStatus]);
 
   function handleStatusChange(status: Status, label: string) {
     updateStatus.mutate(
@@ -158,6 +185,15 @@ export default function JobCard({ job }: { job: Job }) {
     );
   }
 
+  function handleDelete() {
+    if (!window.confirm("Permanently delete this job? This cannot be undone."))
+      return;
+    deleteJobMutation.mutate(job.id, {
+      onSuccess: () => toast.success("Job deleted"),
+      onError: (err) => toast.error(`Failed to delete: ${err.message}`),
+    });
+  }
+
   const needsTruncation = job.content.length > SNIPPET_LENGTH;
   const displayContent = expanded
     ? job.content
@@ -167,8 +203,12 @@ export default function JobCard({ job }: { job: Job }) {
 
   const timestamp = job.created_time_utc ?? job.first_seen_at;
 
+  const isViewed = job.status === "viewed";
+
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 transition-colors hover:border-gray-700">
+    <div
+      className={`rounded-xl border p-4 transition-colors ${isViewed ? "border-gray-800/60 bg-gray-900/70 opacity-80" : "border-gray-800 bg-gray-900"} hover:border-gray-700`}
+    >
       {/* Header: poster + time */}
       <div className="mb-2 flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -180,9 +220,10 @@ export default function JobCard({ job }: { job: Job }) {
               href={job.poster_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-2 text-xs text-blue-400 hover:underline"
+              className="ml-2 inline-flex items-center gap-0.5 text-xs text-blue-400 hover:underline"
             >
-              Profile ↗
+              <UserCircle className="size-3" />
+              Profile
             </a>
           )}
         </div>
@@ -241,9 +282,11 @@ export default function JobCard({ job }: { job: Job }) {
           href={job.post_url}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-white"
+          onClick={handleViewPost}
+          className="inline-flex items-center gap-1 rounded-lg border border-gray-700 px-3 py-1.5 text-xs font-medium text-gray-300 transition-colors hover:border-gray-600 hover:text-white"
         >
-          View Post ↗
+          <ExternalLink className="size-3.5" />
+          View Post
         </a>
 
         {/* Status action buttons */}
@@ -252,35 +295,46 @@ export default function JobCard({ job }: { job: Job }) {
             key={action.status}
             disabled={job.status === action.status || updateStatus.isPending}
             onClick={() => handleStatusChange(action.status, action.label)}
-            className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
               job.status === action.status
                 ? "border-blue-600 bg-blue-600/20 text-blue-300"
                 : "border-gray-700 text-gray-400 hover:border-gray-600 hover:text-white"
             } disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            {action.icon} {action.label}
+            {statusIcons[action.status]} {action.label}
           </button>
         ))}
 
         {/* Spacer */}
         <div className="flex-1" />
 
+        {/* Delete button */}
+        <button
+          onClick={handleDelete}
+          disabled={deleteJobMutation.isPending}
+          className="flex items-center gap-1 rounded-lg border border-gray-700 px-2.5 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:border-red-700 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+          title="Delete"
+        >
+          <Trash2 className="size-3.5" />
+          Delete
+        </button>
+
         {/* Feedback buttons */}
         <button
           onClick={() => handleFeedback("relevant")}
           disabled={createFeedback.isPending}
-          className="rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-green-500/10 hover:text-green-400 disabled:opacity-50"
+          className="rounded-lg px-2 py-1.5 transition-colors hover:bg-green-500/10 hover:text-green-400 disabled:opacity-50"
           title="Relevant"
         >
-          👍
+          <ThumbsUp className="size-4" />
         </button>
         <button
           onClick={() => handleFeedback("irrelevant")}
           disabled={createFeedback.isPending}
-          className="rounded-lg px-2 py-1.5 text-sm transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+          className="rounded-lg px-2 py-1.5 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
           title="Irrelevant"
         >
-          👎
+          <ThumbsDown className="size-4" />
         </button>
       </div>
     </div>

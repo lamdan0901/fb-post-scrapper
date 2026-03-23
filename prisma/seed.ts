@@ -20,14 +20,7 @@ async function main() {
         "https://www.facebook.com/groups/976679876378945/",
         "https://www.facebook.com/groups/otingting2021/",
       ]),
-      target_keywords: JSON.stringify([
-        "react",
-        "nextjs",
-        "frontend",
-        "mobile",
-        "typescript",
-        "remote",
-      ]),
+      target_keywords: JSON.stringify(["typescript", "remote"]),
       blacklist: JSON.stringify(["tinhvan", "cmcglobal", "viettel"]),
       allowed_roles: JSON.stringify([
         "Frontend",
@@ -42,6 +35,18 @@ async function main() {
         "Middle",
         "Unknown",
       ]),
+      role_keywords: JSON.stringify({
+        Frontend: ["react", "reactjs", "nextjs", "next.js", "frontend"],
+        Backend: ["nodejs", "python", "java", "golang", "backend"],
+        Fullstack: ["fullstack", "full-stack", "full stack"],
+        Mobile: ["react native", "flutter", "mobile", "ios", "android"],
+        Other: [],
+      }),
+      common_rules: "",
+      role_rules: JSON.stringify({
+        Frontend:
+          "Frontend role applies ONLY to React/ReactJS/Next.js positions. If a job post mentions only Angular, Vue, or Svelte without any mention of React/ReactJS/Next.js, classify as Other, not Frontend.",
+      }),
       max_yoe: 5,
       cron_schedule: "0 */4 * * *",
     },

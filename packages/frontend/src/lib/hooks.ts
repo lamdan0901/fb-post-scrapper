@@ -8,11 +8,13 @@ import type { Status, FeedbackType } from "@job-alert/shared";
 import {
   fetchJobs,
   updateJobStatus,
+  deleteJob,
   createFeedback,
   fetchSettings,
   updateSettings,
   triggerScraper,
   fetchScraperStatus,
+  fetchRunTimes,
   fetchCronStatus,
   startCron,
   stopCron,
@@ -24,6 +26,7 @@ import {
   type UpdateSettingsBody,
   type ScraperRunResponse,
   type ScraperStatus,
+  type RunTimes,
   type CronStatus,
   type CookieUploadResponse,
 } from "./api";
@@ -34,6 +37,7 @@ export const queryKeys = {
   jobs: (query: JobsQuery) => ["jobs", query] as const,
   settings: ["settings"] as const,
   scraperStatus: ["scraper-status"] as const,
+  runTimes: ["run-times"] as const,
   cronStatus: ["cron-status"] as const,
 };
 
@@ -54,6 +58,16 @@ export function useUpdateJobStatus() {
   const queryClient = useQueryClient();
   return useMutation<Job, Error, { id: number; status: Status }>({
     mutationFn: ({ id, status }) => updateJobStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["jobs"] });
+    },
+  });
+}
+
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (id) => deleteJob(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["jobs"] });
     },
@@ -102,6 +116,14 @@ export function useScraperStatus(
   return useQuery({
     queryKey: queryKeys.scraperStatus,
     queryFn: fetchScraperStatus,
+    ...options,
+  });
+}
+
+export function useRunTimes(options?: Partial<UseQueryOptions<RunTimes>>) {
+  return useQuery({
+    queryKey: queryKeys.runTimes,
+    queryFn: fetchRunTimes,
     ...options,
   });
 }

@@ -1,5 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { ClassificationResult, FilterCriteria } from "@job-alert/shared";
+import type {
+  ClassificationResult,
+  FilterCriteria,
+  RoleRules,
+} from "@job-alert/shared";
 import { PromptBuilder } from "./prompt-builder.js";
 import { parseClassificationResult } from "./schemas.js";
 
@@ -142,6 +146,7 @@ export class GeminiClient {
   async classify(
     postContent: string,
     criteria: FilterCriteria,
+    options?: { commonRules?: string; roleRules?: RoleRules },
   ): Promise<ClassificationResult> {
     if (this.callCount >= this.maxCallsPerRun) {
       throw new GeminiCallBudgetExhaustedError(this.maxCallsPerRun);
@@ -151,6 +156,7 @@ export class GeminiClient {
     const userPrompt = this.promptBuilder.buildUserPrompt(
       postContent,
       criteria,
+      options,
     );
 
     let lastError: unknown;

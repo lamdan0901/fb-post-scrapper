@@ -11,8 +11,12 @@ const VALID_SETTINGS = {
   blacklist: ["blacklisted-company"],
   allowed_roles: ["Frontend", "Fullstack", "Mobile"],
   allowed_levels: ["Fresher", "Junior", "Middle", "Unknown"],
+  role_keywords: { Frontend: ["react", "nextjs"] },
+  common_rules: "",
+  role_rules: {},
   max_yoe: 4,
   cron_schedule: "0 */6 * * *",
+  max_posts_per_group: 50,
 };
 
 describe("GET /api/settings", () => {
@@ -39,6 +43,9 @@ describe("GET /api/settings", () => {
       blacklist: expect.any(Array),
       allowed_roles: expect.any(Array),
       allowed_levels: expect.any(Array),
+      role_keywords: expect.any(Object),
+      common_rules: expect.any(String),
+      role_rules: expect.any(Object),
       max_yoe: expect.any(Number),
       cron_schedule: expect.any(String),
     });

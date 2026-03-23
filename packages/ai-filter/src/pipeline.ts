@@ -2,6 +2,8 @@ import type {
   ClassificationResult,
   FilterCriteria,
   RawPost,
+  RoleKeywords,
+  RoleRules,
 } from "@job-alert/shared";
 import {
   GeminiCallBudgetExhaustedError,
@@ -24,6 +26,9 @@ export interface PipelineConfig {
   filterCriteria: FilterCriteria;
   keywords: string[];
   blacklist: string[];
+  roleKeywords: RoleKeywords;
+  commonRules: string;
+  roleRules: RoleRules;
 }
 
 /** A post that passed all filters, enriched with classification data. */
@@ -105,6 +110,7 @@ export class AIFilterPipeline {
         result = await this.geminiClient.classify(
           normalized,
           config.filterCriteria,
+          { commonRules: config.commonRules, roleRules: config.roleRules },
         );
       } catch (error) {
         if (error instanceof GeminiCallBudgetExhaustedError) {

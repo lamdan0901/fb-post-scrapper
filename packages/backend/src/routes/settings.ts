@@ -47,6 +47,24 @@ function isValidCron(expr: string): boolean {
 const VALID_ROLES = Object.values(Role) as [string, ...string[]];
 const VALID_LEVELS = Object.values(Level) as [string, ...string[]];
 
+// Zod schema for role_keywords: Partial<Record<Role, string[]>>
+const roleKeywordsSchema = z.record(
+  z.string(),
+  z.array(z.string().trim().min(1)),
+).default({}).refine(
+  (obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)),
+  { message: "role_keywords keys must be valid Role values" },
+);
+
+// Zod schema for role_rules: Partial<Record<Role, string>>
+const roleRulesSchema = z.record(
+  z.string(),
+  z.string(),
+).default({}).refine(
+  (obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)),
+  { message: "role_rules keys must be valid Role values" },
+);
+
 // ── Zod Schemas ──
 
 export const updateSettingsSchema = z
@@ -66,6 +84,9 @@ export const updateSettingsSchema = z
     allowed_levels: z
       .array(z.enum(VALID_LEVELS))
       .min(1, "At least one level is required"),
+    role_keywords: roleKeywordsSchema,
+    common_rules: z.string().default(""),
+    role_rules: roleRulesSchema,
     max_yoe: z.number().int().positive("max_yoe must be a positive integer"),
     cron_schedule: z
       .string()
@@ -134,6 +155,9 @@ settingsRouter.put("/", async (req, res) => {
       blacklist: JSON.stringify(body.blacklist),
       allowed_roles: JSON.stringify(body.allowed_roles),
       allowed_levels: JSON.stringify(body.allowed_levels),
+      role_keywords: JSON.stringify(body.role_keywords),
+      common_rules: body.common_rules,
+      role_rules: JSON.stringify(body.role_rules),
       max_yoe: body.max_yoe,
       cron_schedule: body.cron_schedule,
       scrape_lookback_hours: body.scrape_lookback_hours ?? null,

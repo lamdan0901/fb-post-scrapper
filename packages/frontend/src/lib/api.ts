@@ -1,4 +1,11 @@
-import type { Role, Level, Status, FeedbackType } from "@job-alert/shared";
+import type {
+  Role,
+  Level,
+  Status,
+  FeedbackType,
+  RoleKeywords,
+  RoleRules,
+} from "@job-alert/shared";
 
 const BASE_URL = "/api";
 
@@ -20,6 +27,7 @@ export interface Job {
   reason: string;
   is_freelance: boolean;
   status: Status;
+  source: string;
   created_time_raw: string | null;
   created_time_utc: string | null;
   first_seen_at: string;
@@ -41,6 +49,7 @@ export interface JobsQuery {
   level?: Level;
   is_freelance?: boolean;
   status?: Status;
+  source?: string;
   search?: string;
 }
 
@@ -51,6 +60,9 @@ export interface Settings {
   blacklist: string[];
   allowed_roles: Role[];
   allowed_levels: Level[];
+  role_keywords: RoleKeywords;
+  common_rules: string;
+  role_rules: RoleRules;
   max_yoe: number;
   cron_schedule: string;
   scrape_lookback_hours: number | null;
@@ -65,6 +77,9 @@ export interface UpdateSettingsBody {
   blacklist: string[];
   allowed_roles: Role[];
   allowed_levels: Level[];
+  role_keywords: RoleKeywords;
+  common_rules: string;
+  role_rules: RoleRules;
   max_yoe: number;
   cron_schedule: string;
   scrape_lookback_hours: number | null;
@@ -102,6 +117,11 @@ export interface CronStatus {
   expression: string | null;
 }
 
+export interface RunTimes {
+  lastManualRun: string | null;
+  lastCronRun: string | null;
+}
+
 // ── API Client ──
 
 class ApiError extends Error {
@@ -132,6 +152,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(res.status, body.message ?? res.statusText);
   }
 
+  if (res.status === 204) return undefined as T;
+
   return res.json() as Promise<T>;
 }
 
@@ -153,6 +175,10 @@ export function updateJobStatus(id: number, status: Status): Promise<Job> {
     method: "PUT",
     body: JSON.stringify({ status }),
   });
+}
+
+export function deleteJob(id: number): Promise<void> {
+  return request<void>(`/jobs/${id}`, { method: "DELETE" });
 }
 
 export function createFeedback(
@@ -186,6 +212,10 @@ export function triggerScraper(): Promise<ScraperRunResponse> {
 
 export function fetchScraperStatus(): Promise<ScraperStatus> {
   return request<ScraperStatus>("/scraper/status");
+}
+
+export function fetchRunTimes(): Promise<RunTimes> {
+  return request<RunTimes>("/scraper/run-times");
 }
 
 export function fetchCronStatus(): Promise<CronStatus> {

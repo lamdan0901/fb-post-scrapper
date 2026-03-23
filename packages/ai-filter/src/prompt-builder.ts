@@ -1,4 +1,9 @@
-import { Role, Level, type FilterCriteria } from "@job-alert/shared";
+import {
+  Role,
+  Level,
+  type FilterCriteria,
+  type RoleRules,
+} from "@job-alert/shared";
 
 // ── Layer 1: System Instruction (fixed rules) ──
 
@@ -25,8 +30,15 @@ You MUST follow these rules:
 
 ### Classification Rules
 
-STEP 1: Detect if this is a job post
+STEP 1: Detect if this is a job HIRING post (employer/company seeking candidates)
 - If NOT a job post → is_match = false
+- If this is a JOB-SEEKING post (a candidate looking for work, sharing their CV/resume, or advertising their availability) → is_match = false, role = "Other", score = 0, reason = "Job seeker post, not a hiring post"
+  Common job-seeking indicators:
+  - "tìm việc", "cần tìm việc", "looking for a job", "open to work", "seeking opportunities"
+  - "hire me", "available for hire", "xin việc", "tìm cơ hội"
+  - Sharing personal CV/resume/portfolio without a job listing
+  - Candidate describing their own skills and asking to be contacted
+- ONLY classify as a job post if the poster is HIRING or recruiting for a position
 
 STEP 2: Detect if freelance/project-based
 - If YES:
@@ -106,7 +118,11 @@ export class PromptBuilder {
    * Assemble the user prompt containing the dynamic filtering criteria
    * (Layer 2) and the post content (Layer 3).
    */
-  buildUserPrompt(postContent: string, criteria: FilterCriteria): string {
+  buildUserPrompt(
+    postContent: string,
+    criteria: FilterCriteria,
+    options?: { commonRules?: string; roleRules?: RoleRules },
+  ): string {
     const roles = criteria.allowedRoles.join(", ");
     const levels = criteria.allowedLevels.join(", ");
 
@@ -127,6 +143,23 @@ export class PromptBuilder {
     }
     notes += `- If YOE > ${criteria.maxYoe} → reject`;
 
+    // Build custom rules section from common rules + role-specific rules
+    let customRules = "";
+    if (options?.commonRules) {
+      customRules += `\n### Common Rules\n\n${options.commonRules}\n`;
+    }
+    if (options?.roleRules) {
+      const roleRuleEntries = criteria.allowedRoles
+        .map((role) => {
+          const rule = options.roleRules?.[role];
+          return rule ? `- ${role}: ${rule}` : null;
+        })
+        .filter(Boolean);
+      if (roleRuleEntries.length > 0) {
+        customRules += `\n### Role-Specific Rules\n\n${roleRuleEntries.join("\n")}\n`;
+      }
+    }
+
     return `### Filtering Criteria
 
 Allowed Roles:
@@ -140,7 +173,7 @@ ${criteria.maxYoe}
 
 Notes:
 ${notes}
-
+${customRules}
 ### Facebook Post
 
 <post>

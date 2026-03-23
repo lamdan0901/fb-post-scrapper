@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import JobsPage from "./pages/JobsPage";
+import ArchivePage from "./pages/ArchivePage";
 import SettingsPage from "./pages/SettingsPage";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./lib/auth";
@@ -31,6 +32,7 @@ export default function App() {
           }
         >
           <Route path="/" element={<JobsPage />} />
+          <Route path="/archive" element={<ArchivePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

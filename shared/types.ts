@@ -20,6 +20,7 @@ export type Level = (typeof Level)[keyof typeof Level];
 
 export const Status = {
   New: "new",
+  Viewed: "viewed",
   Applied: "applied",
   Saved: "saved",
   Archived: "archived",
@@ -45,6 +46,11 @@ export interface RawPost {
   firstSeenAt: Date;
   groupUrl: string;
 }
+
+// ── Role-scoped keywords & rules ──
+
+export type RoleKeywords = Partial<Record<Role, string[]>>;
+export type RoleRules = Partial<Record<Role, string>>;
 
 // ── AI Filter criteria (from Settings → Gemini prompt) ──
 

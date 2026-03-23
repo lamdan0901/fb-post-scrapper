@@ -27,6 +27,7 @@ enum Level {
 
 enum Status {
   new
+  viewed
   applied
   saved
   archived
@@ -74,6 +75,7 @@ model Job {
   reason           String
   is_freelance     Boolean
   status           Status         @default(new)
+  source           String         @default("manual") // "manual" | "cron"
   created_time_raw String
   created_time_utc DateTime?
   first_seen_at    DateTime
@@ -87,15 +89,19 @@ model Job {
   @@index([role])
   @@index([level])
   @@index([created_at])
+  @@index([source])
 }
 
 model Settings {
   id              Int    @id @default(1)
   target_groups   String // JSON array of group URLs
-  target_keywords String // JSON array of keyword strings
+  target_keywords String // JSON array of common keyword strings
   blacklist       String // JSON array of blacklist terms
   allowed_roles   String @default("[\"Frontend\",\"Backend\",\"Fullstack\",\"Mobile\",\"Other\"]") // JSON array of Role values
   allowed_levels  String @default("[\"Fresher\",\"Junior\",\"Middle\",\"Unknown\"]") // JSON array of Level values
+  role_keywords   String @default("{}") // JSON Record<Role, string[]> — per-role keyword lists
+  common_rules    String @default("")   // Free-text common classification rules for AI prompt
+  role_rules      String @default("{}") // JSON Record<Role, string> — per-role classification rules
   max_yoe               Int    @default(5)
   cron_schedule         String @default("0 */4 * * *")
   scrape_lookback_hours Int?   // relative: only process posts from the last N hours
@@ -110,7 +116,7 @@ model UserFeedback {
   feedback_type FeedbackType
   created_at    DateTime     @default(now())
 
-  job           Job          @relation(fields: [job_id], references: [id])
+  job           Job          @relation(fields: [job_id], references: [id], onDelete: Cascade)
 
   @@index([job_id])
 }

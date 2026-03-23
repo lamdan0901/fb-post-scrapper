@@ -9,10 +9,10 @@ import { scheduler } from "../lib/scheduler.js";
 
 // ── Async run execution (fire-and-forget) ──
 
-async function executeRun(): Promise<void> {
+async function executeRun(source: "manual" | "cron" = "manual"): Promise<void> {
   try {
     const runner = PipelineRunner.fromEnv(prisma);
-    const result = await runner.runWithTimeout();
+    const result = await runner.runWithTimeout(source);
     scraperState.completeRun(result.stats);
   } catch (error) {
     const message =
@@ -42,13 +42,13 @@ scraperRouter.post("/run", scraperLimiter, async (_req, res) => {
     throw new ValidationError("COOKIE_PATH environment variable not set");
   }
 
-  const runId = scraperState.tryStartRun();
+  const runId = scraperState.tryStartRun("manual");
   if (!runId) {
     throw new ConflictError("A scrape run is already in progress");
   }
 
   // Fire-and-forget — do not await
-  executeRun();
+  executeRun("manual");
 
   res.json({ runId, status: "running" });
 });
@@ -61,6 +61,11 @@ scraperRouter.get("/status", (_req, res) => {
     return;
   }
   res.json(state);
+});
+
+// GET /scraper/run-times — return last completed run timestamps per source
+scraperRouter.get("/run-times", (_req, res) => {
+  res.json(scraperState.getRunTimes());
 });
 
 // ── Cron scheduler control ──

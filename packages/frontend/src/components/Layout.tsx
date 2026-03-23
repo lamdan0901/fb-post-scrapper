@@ -1,81 +1,38 @@
 import { useState, useEffect } from "react";
 import { NavLink, Outlet } from "react-router";
+import {
+  Briefcase,
+  Archive,
+  Settings,
+  Menu,
+  LogOut,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
 
 const navItems = [
   {
     to: "/",
     label: "Jobs",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-5 shrink-0"
-      >
-        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-      </svg>
-    ),
+    icon: <Briefcase className="size-5 shrink-0" />,
+  },
+  {
+    to: "/archive",
+    label: "Archive",
+    icon: <Archive className="size-5 shrink-0" />,
   },
   {
     to: "/settings",
     label: "Settings",
-    icon: (
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="size-5 shrink-0"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
+    icon: <Settings className="size-5 shrink-0" />,
   },
 ];
 
-const HamburgerIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="size-5"
-  >
-    <line x1="3" y1="12" x2="21" y2="12" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <line x1="3" y1="18" x2="21" y2="18" />
-  </svg>
-);
+const HamburgerIcon = () => <Menu className="size-5" />;
 
-const SignOutIcon = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="size-5 shrink-0"
-  >
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-    <polyline points="16 17 21 12 16 7" />
-    <line x1="21" y1="12" x2="9" y2="12" />
-  </svg>
-);
+const SignOutIcon = () => <LogOut className="size-5 shrink-0" />;
 
 function Tooltip({ label, visible }: { label: string; visible: boolean }) {
   return (
@@ -199,7 +156,11 @@ export default function Layout() {
             className="rounded-md p-1 text-gray-400 hover:text-white shrink-0"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <HamburgerIcon />
+            {collapsed ? (
+              <ChevronRight className="size-5" />
+            ) : (
+              <ChevronLeft className="size-5" />
+            )}
           </button>
         </div>
         {desktopSidebarNav}
@@ -225,19 +186,7 @@ export default function Layout() {
             onClick={() => setSidebarOpen(false)}
             className="rounded-md p-1 text-gray-400 hover:text-white"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-5"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <X className="size-5" />
           </button>
         </div>
         {mobileSidebarNav}

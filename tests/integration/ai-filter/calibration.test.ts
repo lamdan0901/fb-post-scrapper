@@ -100,6 +100,9 @@ describe("AI Calibration (9.3.1) — ≥95% accuracy on 38-post fixture dataset"
     filterCriteria,
     keywords: fixture.settings.keywords,
     blacklist: fixture.settings.blacklist,
+    roleKeywords: {},
+    commonRules: "",
+    roleRules: {},
   };
 
   // Convert fixture posts to PipelineInput (RawPost + hashes)

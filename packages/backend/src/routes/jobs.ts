@@ -23,12 +23,13 @@ export const listJobsQuerySchema = z.object({
     .enum(["true", "false"])
     .transform((v) => v === "true")
     .optional(),
-  status: z.enum(["new", "applied", "saved", "archived"]).optional(),
+  status: z.enum(["new", "viewed", "applied", "saved", "archived"]).optional(),
+  source: z.enum(["manual", "cron"]).optional(),
   search: z.string().trim().max(200).optional(),
 });
 
 export const updateJobStatusSchema = z.object({
-  status: z.enum(["new", "applied", "saved", "archived"]),
+  status: z.enum(["new", "viewed", "applied", "saved", "archived"]),
 });
 
 export const createFeedbackSchema = z.object({
@@ -48,7 +49,13 @@ jobsRouter.get("/", async (req, res) => {
   if (query.role) where.role = query.role;
   if (query.level) where.level = query.level;
   if (query.is_freelance !== undefined) where.is_freelance = query.is_freelance;
-  if (query.status) where.status = query.status;
+  if (query.status) {
+    where.status = query.status;
+  } else {
+    // Exclude archived jobs by default
+    where.status = { not: "archived" };
+  }
+  if (query.source) where.source = query.source;
   if (query.search) {
     where.content = { contains: query.search };
   }
@@ -84,6 +91,24 @@ jobsRouter.put("/:id", async (req, res) => {
       data: { status },
     });
     res.json(job);
+  } catch (err) {
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2025"
+    ) {
+      throw new NotFoundError(`Job with id ${id} not found`);
+    }
+    throw err;
+  }
+});
+
+// DELETE /jobs/:id — permanently delete a job and its feedbacks
+jobsRouter.delete("/:id", async (req, res) => {
+  const { id } = jobIdParamSchema.parse(req.params);
+
+  try {
+    await prisma.job.delete({ where: { id } });
+    res.status(204).end();
   } catch (err) {
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&

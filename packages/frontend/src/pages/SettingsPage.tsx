@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { ChevronDown } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Role, Level } from "@job-alert/shared";
+import type { RoleKeywords, RoleRules } from "@job-alert/shared";
 import type { UpdateSettingsBody } from "../lib/api";
 import {
   useSettings,
   useUpdateSettings,
   useTriggerScraper,
   useScraperStatus,
+  useRunTimes,
   useCronStatus,
   useStartCron,
   useStopCron,
@@ -182,12 +185,84 @@ function ChipToggle<T extends string>({
   );
 }
 
+// ── Role Config Section (keywords + rule per role) ──
+
+function RoleConfigSection({
+  role,
+  keywords,
+  rule,
+  onKeywordsChange,
+  onRuleChange,
+}: {
+  role: string;
+  keywords: string[];
+  rule: string;
+  onKeywordsChange: (keywords: string[]) => void;
+  onRuleChange: (rule: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex w-full items-center justify-between"
+      >
+        <div>
+          <h2 className="text-lg font-semibold">{role} Role</h2>
+          <p className="mt-1 text-left text-sm text-gray-500">
+            Keywords and classification rule for {role} jobs.
+          </p>
+        </div>
+        <ChevronDown
+          className={`h-5 w-5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {expanded && (
+        <div className="mt-4 space-y-4">
+          <div>
+            <label className="text-sm font-medium text-gray-300">
+              Keywords
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              Role-specific keywords for pre-filtering.
+            </p>
+            <TagInput
+              tags={keywords}
+              onChange={onKeywordsChange}
+              placeholder={`Add ${role} keyword\u2026`}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-300">
+              Classification Rule
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              Free-text rule sent to the AI to guide {role} role classification.
+            </p>
+            <textarea
+              value={rule}
+              onChange={(e) => onRuleChange(e.target.value)}
+              placeholder={`Add classification rule for ${role}\u2026`}
+              rows={3}
+              className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Cron Control ──
 
 function CronControl() {
   const { data: cronStatus, isLoading } = useCronStatus();
   const startCron = useStartCron();
   const stopCron = useStopCron();
+  const { data: runTimes } = useRunTimes();
 
   const isActive = cronStatus?.active ?? false;
 
@@ -247,6 +322,11 @@ function CronControl() {
           </button>
         )}
       </div>
+      {runTimes?.lastCronRun && (
+        <p className="mt-2 text-xs text-gray-500">
+          Last auto run: {new Date(runTimes.lastCronRun).toLocaleString()}
+        </p>
+      )}
     </Section>
   );
 }
@@ -261,6 +341,7 @@ function ScraperControl() {
       return d?.status === "running" ? 3000 : false;
     },
   });
+  const { data: runTimes } = useRunTimes();
 
   const isRunning = status?.status === "running";
 
@@ -354,6 +435,12 @@ function ScraperControl() {
             </div>
           )}
         </div>
+      )}
+
+      {runTimes?.lastManualRun && (
+        <p className="mt-2 text-xs text-gray-500">
+          Last manual run: {new Date(runTimes.lastManualRun).toLocaleString()}
+        </p>
       )}
     </Section>
   );
@@ -625,6 +712,9 @@ function SettingsForm({
     blacklist: settings.blacklist,
     allowed_roles: settings.allowed_roles,
     allowed_levels: settings.allowed_levels,
+    role_keywords: settings.role_keywords ?? {},
+    common_rules: settings.common_rules ?? "",
+    role_rules: settings.role_rules ?? {},
     max_yoe: settings.max_yoe,
     cron_schedule: settings.cron_schedule,
     scrape_lookback_hours: settings.scrape_lookback_hours,
@@ -640,8 +730,16 @@ function SettingsForm({
     const errs: Record<string, string> = {};
     if (data.target_groups.length === 0)
       errs.target_groups = "At least one group is required";
-    if (data.target_keywords.length === 0)
-      errs.target_keywords = "At least one keyword is required";
+    // Check that at least one keyword exists across common + all role keywords
+    const totalKeywords =
+      data.target_keywords.length +
+      Object.values(data.role_keywords).reduce(
+        (sum, kws) => sum + (kws?.length ?? 0),
+        0,
+      );
+    if (totalKeywords === 0)
+      errs.target_keywords =
+        "At least one keyword is required (common or role-specific)";
     if (data.allowed_roles.length === 0)
       errs.allowed_roles = "At least one role is required";
     if (data.allowed_levels.length === 0)
@@ -775,15 +873,15 @@ function SettingsForm({
         )}
       </Section>
 
-      {/* Keywords */}
+      {/* Common Keywords */}
       <Section
-        title="Target Keywords"
-        description="Posts must contain at least one of these keywords to be processed."
+        title="Common Keywords"
+        description="Posts must contain at least one keyword (common or role-specific) to be processed."
       >
         <TagInput
           tags={form.target_keywords}
           onChange={(v) => updateField("target_keywords", v)}
-          placeholder="Add a keyword…"
+          placeholder="Add a common keyword…"
         />
         {validationErrors.target_keywords && (
           <p className="mt-1 text-xs text-red-400">
@@ -807,7 +905,7 @@ function SettingsForm({
       {/* Allowed Roles */}
       <Section
         title="Allowed Roles"
-        description="Only match jobs with these roles."
+        description="Only match jobs with these roles. Each role can have its own keywords and classification rule."
       >
         <ChipToggle
           options={ALL_ROLES}
@@ -819,6 +917,41 @@ function SettingsForm({
             {validationErrors.allowed_roles}
           </p>
         )}
+      </Section>
+
+      {/* Per-Role Keywords & Rules */}
+      {form.allowed_roles.map((role) => (
+        <RoleConfigSection
+          key={role}
+          role={role}
+          keywords={form.role_keywords[role] ?? []}
+          rule={form.role_rules[role] ?? ""}
+          onKeywordsChange={(keywords) => {
+            const updated: RoleKeywords = {
+              ...form.role_keywords,
+              [role]: keywords,
+            };
+            updateField("role_keywords", updated);
+          }}
+          onRuleChange={(rule) => {
+            const updated: RoleRules = { ...form.role_rules, [role]: rule };
+            updateField("role_rules", updated);
+          }}
+        />
+      ))}
+
+      {/* Common Rules */}
+      <Section
+        title="Common Rules"
+        description="Free-text classification rules sent to the AI for all roles."
+      >
+        <textarea
+          value={form.common_rules}
+          onChange={(e) => updateField("common_rules", e.target.value)}
+          placeholder="Add common classification rules…"
+          rows={3}
+          className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600"
+        />
       </Section>
 
       {/* Allowed Levels */}

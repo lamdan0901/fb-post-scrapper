@@ -16,7 +16,7 @@ import {
 } from "@job-alert/notifier";
 import { parseSettingsRow } from "./settings-helpers.js";
 import { createDeduplicationStore } from "./dedup-store.js";
-import type { PipelineRunStats } from "./scraper-state.js";
+import type { PipelineRunStats, RunSource } from "./scraper-state.js";
 
 // ── Constants ──
 
@@ -52,7 +52,7 @@ export class PipelineRunner {
     return new PipelineRunner(prisma, notifier);
   }
 
-  async run(): Promise<PipelineRunResult> {
+  async run(source: RunSource = "manual"): Promise<PipelineRunResult> {
     // ── 1. Load settings ──
     const settingsRow = await this.prisma.settings.findUnique({
       where: { id: 1 },
@@ -78,8 +78,19 @@ export class PipelineRunner {
       // All configured groups are always scraped
       maxGroups: settings.target_groups.length,
       // Total cap = posts per group × number of groups
-      maxTotalPosts: settings.max_posts_per_group * settings.target_groups.length,
+      maxTotalPosts:
+        settings.max_posts_per_group * settings.target_groups.length,
     };
+
+    // Merge common keywords + all enabled role keywords (deduplicated)
+    const roleKeywords = settings.role_keywords;
+    const allKeywords = new Set(settings.target_keywords);
+    for (const role of settings.allowed_roles) {
+      const keywords = roleKeywords[role];
+      if (keywords) {
+        for (const kw of keywords) allKeywords.add(kw);
+      }
+    }
 
     const pipelineConfig: PipelineConfig = {
       filterCriteria: {
@@ -87,8 +98,11 @@ export class PipelineRunner {
         allowedLevels: settings.allowed_levels as Level[],
         maxYoe: settings.max_yoe,
       },
-      keywords: settings.target_keywords,
+      keywords: [...allKeywords],
       blacklist: settings.blacklist,
+      roleKeywords: settings.role_keywords,
+      commonRules: settings.common_rules,
+      roleRules: settings.role_rules,
     };
 
     // ── 2. Scrape ──
@@ -118,8 +132,7 @@ export class PipelineRunner {
           : scrape_date_from != null
             ? new Date(scrape_date_from)
             : null;
-      const to =
-        scrape_date_to != null ? new Date(scrape_date_to) : null;
+      const to = scrape_date_to != null ? new Date(scrape_date_to) : null;
 
       scrapeResult.newPosts = scrapeResult.newPosts.filter((p) => {
         if (!p.createdTimeUtc) return true; // no timestamp — keep (benefit of the doubt)
@@ -229,6 +242,7 @@ export class PipelineRunner {
         reason: job.reason,
         is_freelance: job.isFreelance,
         status: "new" as const,
+        source,
         created_time_raw: job.createdTimeRaw,
         created_time_utc: job.createdTimeUtc ?? null,
         first_seen_at: job.firstSeenAt,
@@ -315,6 +329,7 @@ export class PipelineRunner {
 
   /** Run with a timeout guard. Clears the timer on completion. */
   async runWithTimeout(
+    source: RunSource = "manual",
     timeoutMs: number = RUN_TIMEOUT_MS,
   ): Promise<PipelineRunResult> {
     let timer: ReturnType<typeof setTimeout>;
@@ -326,7 +341,7 @@ export class PipelineRunner {
     });
 
     try {
-      return await Promise.race([this.run(), timeout]);
+      return await Promise.race([this.run(source), timeout]);
     } finally {
       clearTimeout(timer!);
     }

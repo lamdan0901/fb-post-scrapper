@@ -1,5 +1,5 @@
 import type { Settings } from "@job-alert/generated-prisma";
-import type { Role, Level } from "@job-alert/shared";
+import type { Role, Level, RoleKeywords, RoleRules } from "@job-alert/shared";
 
 export interface ParsedSettings {
   id: number;
@@ -8,6 +8,9 @@ export interface ParsedSettings {
   blacklist: string[];
   allowed_roles: Role[];
   allowed_levels: Level[];
+  role_keywords: RoleKeywords;
+  common_rules: string;
+  role_rules: RoleRules;
   max_yoe: number;
   cron_schedule: string;
   scrape_lookback_hours: number | null;
@@ -24,6 +27,9 @@ export function parseSettingsRow(row: Settings): ParsedSettings {
     blacklist: JSON.parse(row.blacklist) as string[],
     allowed_roles: JSON.parse(row.allowed_roles) as Role[],
     allowed_levels: JSON.parse(row.allowed_levels) as Level[],
+    role_keywords: JSON.parse(row.role_keywords) as RoleKeywords,
+    common_rules: row.common_rules,
+    role_rules: JSON.parse(row.role_rules) as RoleRules,
     max_yoe: row.max_yoe,
     cron_schedule: row.cron_schedule,
     scrape_lookback_hours: row.scrape_lookback_hours ?? null,
