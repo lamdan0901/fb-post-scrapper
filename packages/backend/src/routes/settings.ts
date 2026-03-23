@@ -48,22 +48,20 @@ const VALID_ROLES = Object.values(Role) as [string, ...string[]];
 const VALID_LEVELS = Object.values(Level) as [string, ...string[]];
 
 // Zod schema for role_keywords: Partial<Record<Role, string[]>>
-const roleKeywordsSchema = z.record(
-  z.string(),
-  z.array(z.string().trim().min(1)),
-).default({}).refine(
-  (obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)),
-  { message: "role_keywords keys must be valid Role values" },
-);
+const roleKeywordsSchema = z
+  .record(z.string(), z.array(z.string().trim().min(1)))
+  .default({})
+  .refine((obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)), {
+    message: "role_keywords keys must be valid Role values",
+  });
 
 // Zod schema for role_rules: Partial<Record<Role, string>>
-const roleRulesSchema = z.record(
-  z.string(),
-  z.string(),
-).default({}).refine(
-  (obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)),
-  { message: "role_rules keys must be valid Role values" },
-);
+const roleRulesSchema = z
+  .record(z.string(), z.string())
+  .default({})
+  .refine((obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)), {
+    message: "role_rules keys must be valid Role values",
+  });
 
 // ── Zod Schemas ──
 
@@ -116,12 +114,14 @@ export const updateSettingsSchema = z
       .int()
       .min(1, "Must be at least 1")
       .max(200, "Must be at most 200"),
+    excluded_locations: z
+      .array(z.string().trim().min(1, "Location must not be empty"))
+      .default([]),
   })
   .refine(
     (d) => {
       const hasLookback = d.scrape_lookback_hours != null;
-      const hasRange =
-        d.scrape_date_from != null || d.scrape_date_to != null;
+      const hasRange = d.scrape_date_from != null || d.scrape_date_to != null;
       return !(hasLookback && hasRange);
     },
     {
@@ -164,6 +164,7 @@ settingsRouter.put("/", async (req, res) => {
       scrape_date_from: body.scrape_date_from ?? null,
       scrape_date_to: body.scrape_date_to ?? null,
       max_posts_per_group: body.max_posts_per_group,
+      excluded_locations: JSON.stringify(body.excluded_locations),
     },
   });
 

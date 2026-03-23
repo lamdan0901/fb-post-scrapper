@@ -11,6 +11,7 @@ export type {
 } from "./deduplicator.js";
 export { SessionExpiredError } from "./errors.js";
 export { GroupScraper } from "./group-scraper.js";
+export type { ScrapeGroupOptions } from "./group-scraper.js";
 export { SELECTORS } from "./selectors.js";
 export { TimestampParser } from "./timestamp-parser.js";
 export type { ParsedTimestamp } from "./timestamp-parser.js";

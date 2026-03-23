@@ -19,7 +19,12 @@ export class PreFilter {
       return { shouldCallAI: false, skipReason: "Blacklisted company" };
     }
 
-    // Stage 2: tech keyword check
+    // Stage 2: location exclusion check
+    if (this.preprocessor.isLocationExcluded(text)) {
+      return { shouldCallAI: false, skipReason: "Excluded location" };
+    }
+
+    // Stage 3: tech keyword check
     if (!this.preprocessor.containsTechKeywords(text)) {
       return { shouldCallAI: false, skipReason: "Not tech-related" };
     }

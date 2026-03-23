@@ -43,3 +43,35 @@ export function parseClassificationResult(json: unknown): ClassificationResult {
     reason: raw.reason,
   };
 }
+
+// ── Batch schema for multi-post classification ──
+
+export const BatchClassificationResultSchema = z.object({
+  results: z.array(
+    ClassificationResultSchema.extend({
+      post_index: z.number().int().min(0),
+    }),
+  ),
+});
+
+/**
+ * Validate a batch Gemini JSON response and transform to camelCase results.
+ * Each entry includes a `postIndex` to map back to the original post array.
+ *
+ * @throws {z.ZodError} if validation fails
+ */
+export function parseBatchClassificationResult(
+  json: unknown,
+): (ClassificationResult & { postIndex: number })[] {
+  const raw = BatchClassificationResultSchema.parse(json);
+  return raw.results.map((r) => ({
+    isMatch: r.is_match,
+    isFreelance: r.is_freelance,
+    role: r.role,
+    level: r.level,
+    yoe: r.yoe,
+    score: r.score,
+    reason: r.reason,
+    postIndex: r.post_index,
+  }));
+}

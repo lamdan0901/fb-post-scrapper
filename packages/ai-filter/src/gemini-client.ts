@@ -5,7 +5,10 @@ import type {
   RoleRules,
 } from "@job-alert/shared";
 import { PromptBuilder } from "./prompt-builder.js";
-import { parseClassificationResult } from "./schemas.js";
+import {
+  parseBatchClassificationResult,
+  parseClassificationResult,
+} from "./schemas.js";
 
 // ── Errors ──
 
@@ -32,6 +35,8 @@ export interface GeminiClientConfig {
   maxCallsPerRun?: number;
   /** Max requests per minute. Defaults to 5 (Gemini free-tier limit). */
   requestsPerMinute?: number;
+  /** Number of posts to classify per API call. Defaults to 5. */
+  batchSize?: number;
 }
 
 const DEFAULT_MODEL = "gemini-3-flash-preview";
@@ -39,6 +44,7 @@ const DEFAULT_TEMPERATURE = 0.2;
 const DEFAULT_MAX_CALLS = 50;
 const MAX_RETRIES = 2;
 const DEFAULT_RPM = 5;
+const DEFAULT_BATCH_SIZE = 4;
 
 // ── Rate Limiter (sliding window) ──
 
@@ -102,6 +108,46 @@ const RESPONSE_SCHEMA = {
   ],
 } as const;
 
+/** Gemini-compatible batch response schema (array of classifications). */
+const BATCH_RESPONSE_SCHEMA = {
+  type: Type.OBJECT,
+  properties: {
+    results: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          post_index: { type: Type.NUMBER },
+          is_match: { type: Type.BOOLEAN },
+          is_freelance: { type: Type.BOOLEAN },
+          role: {
+            type: Type.STRING,
+            enum: ["Frontend", "Backend", "Fullstack", "Mobile", "Other"],
+          },
+          level: {
+            type: Type.STRING,
+            enum: ["Fresher", "Junior", "Middle", "Senior", "Unknown"],
+          },
+          yoe: { type: Type.NUMBER, nullable: true },
+          score: { type: Type.NUMBER },
+          reason: { type: Type.STRING },
+        },
+        required: [
+          "post_index",
+          "is_match",
+          "is_freelance",
+          "role",
+          "level",
+          "yoe",
+          "score",
+          "reason",
+        ],
+      },
+    },
+  },
+  required: ["results"],
+} as const;
+
 // ── Client ──
 
 export class GeminiClient {
@@ -111,6 +157,7 @@ export class GeminiClient {
   private readonly maxCallsPerRun: number;
   private readonly promptBuilder: PromptBuilder;
   private readonly rateLimiter: RateLimiter;
+  readonly batchSize: number;
   private callCount = 0;
 
   constructor(config: GeminiClientConfig) {
@@ -120,6 +167,7 @@ export class GeminiClient {
     this.maxCallsPerRun = config.maxCallsPerRun ?? DEFAULT_MAX_CALLS;
     this.promptBuilder = new PromptBuilder();
     this.rateLimiter = new RateLimiter(config.requestsPerMinute ?? DEFAULT_RPM);
+    this.batchSize = config.batchSize ?? DEFAULT_BATCH_SIZE;
   }
 
   /** Reset API call counter. Call at the start of each pipeline run. */
@@ -212,6 +260,84 @@ export class GeminiClient {
 
     throw new GeminiClassificationError(
       `Failed to get valid classification after ${MAX_RETRIES + 1} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    );
+  }
+
+  /**
+   * Classify multiple preprocessed posts in a single Gemini API call.
+   *
+   * @throws {GeminiCallBudgetExhaustedError} when budget is used up
+   * @throws {GeminiClassificationError} on persistent invalid responses
+   */
+  async classifyBatch(
+    postContents: string[],
+    criteria: FilterCriteria,
+    options?: { commonRules?: string; roleRules?: RoleRules },
+  ): Promise<(ClassificationResult & { postIndex: number })[]> {
+    if (postContents.length === 0) return [];
+
+    if (this.callCount >= this.maxCallsPerRun) {
+      throw new GeminiCallBudgetExhaustedError(this.maxCallsPerRun);
+    }
+
+    const systemInstruction = this.promptBuilder.buildSystemInstruction();
+    const userPrompt = this.promptBuilder.buildBatchUserPrompt(
+      postContents,
+      criteria,
+      options,
+    );
+
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 0 && this.callCount >= this.maxCallsPerRun) {
+        throw new GeminiCallBudgetExhaustedError(this.maxCallsPerRun);
+      }
+
+      await this.rateLimiter.acquire();
+      this.callCount++;
+
+      let response;
+      try {
+        response = await this.ai.models.generateContent({
+          model: this.model,
+          contents: userPrompt,
+          config: {
+            systemInstruction,
+            temperature: this.temperature,
+            responseMimeType: "application/json",
+            responseSchema: BATCH_RESPONSE_SCHEMA,
+          },
+        });
+      } catch (err: unknown) {
+        if (this.isRateLimitError(err)) {
+          const retryAfterMs = this.extractRetryDelay(err) ?? 35_000;
+          console.warn(
+            `[GeminiClient] Rate limited (429). Waiting ${Math.ceil(retryAfterMs / 1000)}s before retry…`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
+          lastError = err;
+          continue;
+        }
+        throw err;
+      }
+
+      const text = response.text;
+      if (!text) {
+        lastError = new Error("Empty response from Gemini API");
+        continue;
+      }
+
+      try {
+        const parsed: unknown = JSON.parse(text);
+        return parseBatchClassificationResult(parsed);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw new GeminiClassificationError(
+      `Failed to get valid batch classification after ${MAX_RETRIES + 1} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     );
   }
 

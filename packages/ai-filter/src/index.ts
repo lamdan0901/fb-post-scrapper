@@ -17,7 +17,9 @@ export { PromptBuilder } from "./prompt-builder.js";
 
 export {
   ClassificationResultSchema,
+  BatchClassificationResultSchema,
   parseClassificationResult,
+  parseBatchClassificationResult,
 } from "./schemas.js";
 export type { ClassificationResultRaw } from "./schemas.js";
 

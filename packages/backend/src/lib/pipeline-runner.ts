@@ -82,6 +82,21 @@ export class PipelineRunner {
         settings.max_posts_per_group * settings.target_groups.length,
     };
 
+    // Compute lookback cutoff so the scraper can stop scrolling early
+    const { scrape_lookback_hours, scrape_date_from, scrape_date_to } =
+      settings;
+    const lookbackFrom =
+      scrape_lookback_hours != null
+        ? new Date(Date.now() - scrape_lookback_hours * 60 * 60 * 1000)
+        : scrape_date_from != null
+          ? new Date(scrape_date_from)
+          : null;
+    const lookbackTo = scrape_date_to != null ? new Date(scrape_date_to) : null;
+
+    if (lookbackFrom) {
+      scraperConfig.lookbackCutoff = lookbackFrom;
+    }
+
     // Merge common keywords + all enabled role keywords (deduplicated)
     const roleKeywords = settings.role_keywords;
     const allKeywords = new Set(settings.target_keywords);
@@ -100,6 +115,7 @@ export class PipelineRunner {
       },
       keywords: [...allKeywords],
       blacklist: settings.blacklist,
+      excludedLocations: settings.excluded_locations,
       roleKeywords: settings.role_keywords,
       commonRules: settings.common_rules,
       roleRules: settings.role_rules,
@@ -118,26 +134,13 @@ export class PipelineRunner {
 
     const scrapeResult = await orchestrator.run(scraperConfig);
 
-    // ── 2b. Apply post-age filter ──
-    const { scrape_lookback_hours, scrape_date_from, scrape_date_to } =
-      settings;
-    if (
-      scrape_lookback_hours != null ||
-      scrape_date_from != null ||
-      scrape_date_to != null
-    ) {
-      const from =
-        scrape_lookback_hours != null
-          ? new Date(Date.now() - scrape_lookback_hours * 60 * 60 * 1000)
-          : scrape_date_from != null
-            ? new Date(scrape_date_from)
-            : null;
-      const to = scrape_date_to != null ? new Date(scrape_date_to) : null;
-
+    // ── 2b. Apply post-age filter (safety net — scraper already stops early
+    //        via lookbackCutoff, but some posts may lack parseable timestamps) ──
+    if (lookbackFrom || lookbackTo) {
       scrapeResult.newPosts = scrapeResult.newPosts.filter((p) => {
         if (!p.createdTimeUtc) return true; // no timestamp — keep (benefit of the doubt)
-        if (from && p.createdTimeUtc < from) return false;
-        if (to && p.createdTimeUtc > to) return false;
+        if (lookbackFrom && p.createdTimeUtc < lookbackFrom) return false;
+        if (lookbackTo && p.createdTimeUtc > lookbackTo) return false;
         return true;
       });
 

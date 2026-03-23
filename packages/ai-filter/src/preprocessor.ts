@@ -34,11 +34,14 @@ export interface PreprocessorConfig {
   keywords: string[];
   /** Company / term blacklist (e.g. ["tinhvan", "cmcglobal"]). */
   blacklist: string[];
+  /** Location strings to exclude (e.g. ["HCM", "Ho Chi Minh", "Đà Nẵng"]). */
+  excludedLocations?: string[];
 }
 
 export class ContentPreprocessor {
   private readonly keywordPatterns: RegExp[];
   private readonly blacklistPatterns: RegExp[];
+  private readonly locationPatterns: RegExp[];
 
   constructor(config: PreprocessorConfig) {
     // Pre-compile boundary-aware regexes once for reuse.
@@ -47,6 +50,9 @@ export class ContentPreprocessor {
     );
     this.blacklistPatterns = config.blacklist.map((term) =>
       buildBoundaryPattern(term),
+    );
+    this.locationPatterns = (config.excludedLocations ?? []).map((loc) =>
+      buildBoundaryPattern(loc),
     );
   }
 
@@ -95,6 +101,14 @@ export class ContentPreprocessor {
    */
   isBlacklisted(text: string): boolean {
     return this.blacklistPatterns.some((re) => re.test(text));
+  }
+
+  /**
+   * Check whether the text contains any excluded location term.
+   * Returns `false` when no excluded locations are configured.
+   */
+  isLocationExcluded(text: string): boolean {
+    return this.locationPatterns.some((re) => re.test(text));
   }
 }
 

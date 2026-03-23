@@ -69,6 +69,7 @@ export interface Settings {
   scrape_date_from: string | null;
   scrape_date_to: string | null;
   max_posts_per_group: number;
+  excluded_locations: string[];
 }
 
 export interface UpdateSettingsBody {
@@ -86,6 +87,7 @@ export interface UpdateSettingsBody {
   scrape_date_from: string | null;
   scrape_date_to: string | null;
   max_posts_per_group: number;
+  excluded_locations: string[];
 }
 
 export interface ScraperRunResponse {

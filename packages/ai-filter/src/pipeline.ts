@@ -26,6 +26,7 @@ export interface PipelineConfig {
   filterCriteria: FilterCriteria;
   keywords: string[];
   blacklist: string[];
+  excludedLocations?: string[];
   roleKeywords: RoleKeywords;
   commonRules: string;
   roleRules: RoleRules;
@@ -64,8 +65,8 @@ export class AIFilterPipeline {
   /**
    * Run the AI filter pipeline over an array of scraped posts.
    *
-   * Flow per post: normalize → pre-filter → Gemini classify → match logic.
-   * Stops gracefully when the API call budget is exhausted.
+   * Flow: normalize → pre-filter → batch Gemini classify → match logic.
+   * Posts are batched to reduce API calls. Stops gracefully when budget is exhausted.
    */
   async run(
     posts: PipelineInput[],
@@ -76,6 +77,7 @@ export class AIFilterPipeline {
     const preprocessor = new ContentPreprocessor({
       keywords: config.keywords,
       blacklist: config.blacklist,
+      excludedLocations: config.excludedLocations ?? [],
     });
     const preFilter = new PreFilter(preprocessor);
 
@@ -88,27 +90,33 @@ export class AIFilterPipeline {
       apiCallsUsed: 0,
     };
 
-    for (const post of posts) {
-      // Normalize content
-      const normalized = preprocessor.normalize(post.content);
+    // Phase 1: Pre-filter all posts and collect candidates for Gemini
+    const candidates: { post: PipelineInput; normalized: string }[] = [];
 
-      // Pre-filter: skip obvious non-matches without an API call
+    for (const post of posts) {
+      const normalized = preprocessor.normalize(post.content);
       const preResult = preFilter.evaluate(normalized);
       if (!preResult.shouldCallAI) {
         stats.skipped++;
         stats.processed++;
         continue;
       }
+      candidates.push({ post, normalized });
+    }
 
-      // Check API budget before calling Gemini
-      if (this.geminiClient.remainingCalls <= 0) {
-        break;
-      }
+    // Phase 2: Process candidates in batches
+    const batchSize = this.geminiClient.batchSize;
 
-      let result: ClassificationResult;
+    for (let i = 0; i < candidates.length; i += batchSize) {
+      if (this.geminiClient.remainingCalls <= 0) break;
+
+      const batch = candidates.slice(i, i + batchSize);
+      const postContents = batch.map((c) => c.normalized);
+
+      let results: (ClassificationResult & { postIndex: number })[];
       try {
-        result = await this.geminiClient.classify(
-          normalized,
+        results = await this.geminiClient.classifyBatch(
+          postContents,
           config.filterCriteria,
           { commonRules: config.commonRules, roleRules: config.roleRules },
         );
@@ -117,28 +125,38 @@ export class AIFilterPipeline {
           break;
         }
         if (error instanceof GeminiClassificationError) {
-          // Single post failed after retries — skip it, continue pipeline
-          stats.skipped++;
-          stats.processed++;
+          // Entire batch failed — skip all posts in it
+          stats.skipped += batch.length;
+          stats.processed += batch.length;
           continue;
         }
-        throw error; // Unexpected errors bubble up
+        throw error;
       }
 
-      stats.processed++;
+      // Map results back to posts by postIndex
+      const resultsByIndex = new Map(results.map((r) => [r.postIndex, r]));
 
-      // Matching logic
-      if (this.isMatch(result, config.filterCriteria)) {
-        matchedJobs.push({
-          ...post,
-          role: result.role,
-          level: result.level,
-          yoe: result.yoe,
-          score: result.score,
-          reason: result.reason,
-          isFreelance: result.isFreelance,
-        });
-        stats.matched++;
+      for (let j = 0; j < batch.length; j++) {
+        stats.processed++;
+        const result = resultsByIndex.get(j);
+        if (!result) {
+          // Post not in results (model omitted it) — skip
+          stats.skipped++;
+          continue;
+        }
+
+        if (this.isMatch(result, config.filterCriteria)) {
+          matchedJobs.push({
+            ...batch[j]!.post,
+            role: result.role,
+            level: result.level,
+            yoe: result.yoe,
+            score: result.score,
+            reason: result.reason,
+            isFreelance: result.isFreelance,
+          });
+          stats.matched++;
+        }
       }
     }
 

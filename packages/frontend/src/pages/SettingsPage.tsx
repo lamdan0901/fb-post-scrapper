@@ -806,6 +806,7 @@ function SettingsForm({
     scrape_date_from: settings.scrape_date_from,
     scrape_date_to: settings.scrape_date_to,
     max_posts_per_group: settings.max_posts_per_group,
+    excluded_locations: settings.excluded_locations ?? [],
   }));
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
@@ -984,6 +985,18 @@ function SettingsForm({
           tags={form.blacklist}
           onChange={(v) => updateField("blacklist", v)}
           placeholder="Add a blacklist term…"
+        />
+      </Section>
+
+      {/* Excluded Locations */}
+      <Section
+        title="Excluded Locations"
+        description="Posts mentioning any of these cities or regions will be skipped before AI processing."
+      >
+        <TagInput
+          tags={form.excluded_locations}
+          onChange={(v) => updateField("excluded_locations", v)}
+          placeholder="Add a location to exclude…"
         />
       </Section>
 

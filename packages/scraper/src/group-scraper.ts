@@ -12,6 +12,15 @@ import { randomInt } from "node:crypto";
 const MAX_STALE_SCROLLS = 3;
 const FEED_TIMEOUT = 15_000;
 const SEE_MORE_RETRIES = 2;
+/** Fallback timeout when no lookback cutoff is set (prevents infinite hangs). */
+const FALLBACK_GROUP_TIMEOUT_MS = 5 * 60_000; // 5 minutes
+
+export interface ScrapeGroupOptions {
+  /** Stop scraping when a post's timestamp is older than this date. */
+  lookbackCutoff?: Date;
+  /** Maximum time in ms to spend scraping this group (only used when no lookbackCutoff). */
+  groupTimeoutMs?: number;
+}
 
 export class GroupScraper {
   private readonly timestampParser = new TimestampParser();
@@ -25,12 +34,28 @@ export class GroupScraper {
    * collect posts, expands truncated content via "See more" clicks, and
    * extracts structured post data.
    *
+   * Since the feed is sorted newest-first, when a post older than
+   * `lookbackCutoff` is found the group is considered fully scraped and
+   * the scroll loop terminates early.
+   *
    * @param groupUrl - Full Facebook group URL (e.g. `https://www.facebook.com/groups/xyz/`)
    * @param maxPosts - Maximum number of posts to collect before stopping
+   * @param options  - Optional lookback cutoff and per-group timeout
    * @returns Array of extracted {@link RawPost} objects
    */
-  async scrapeGroup(groupUrl: string, maxPosts: number): Promise<RawPost[]> {
+  async scrapeGroup(
+    groupUrl: string,
+    maxPosts: number,
+    options?: ScrapeGroupOptions,
+  ): Promise<RawPost[]> {
     if (maxPosts <= 0) return [];
+
+    // When a lookback cutoff is set, the timestamp check naturally terminates
+    // scrolling — no fixed timeout needed.  Only apply a fallback timeout when
+    // there is no lookback cutoff to guard against infinite hangs.
+    const groupDeadline = options?.lookbackCutoff
+      ? undefined
+      : Date.now() + (options?.groupTimeoutMs ?? FALLBACK_GROUP_TIMEOUT_MS);
 
     // Navigate to group sorted by newest first
     const url = new URL(groupUrl);
@@ -49,8 +74,17 @@ export class GroupScraper {
     const posts: RawPost[] = [];
     const processedUrls = new Set<string>();
     let staleScrollCount = 0;
+    let reachedLookbackLimit = false;
 
     while (posts.length < maxPosts && staleScrollCount < MAX_STALE_SCROLLS) {
+      // Guard: stop if we've exceeded the fallback timeout (only active when no lookback)
+      if (groupDeadline && Date.now() > groupDeadline) {
+        console.warn(
+          `[GroupScraper] Timeout reached for ${groupUrl} — collected ${posts.length} posts`,
+        );
+        break;
+      }
+
       const postElements = await this.page.locator(SELECTORS.postItems).all();
       let foundNew = false;
 
@@ -61,10 +95,24 @@ export class GroupScraper {
         if (!post) continue;
         if (processedUrls.has(post.postUrl)) continue;
 
+        // Lookback early termination: posts are newest-first, so once we
+        // encounter a post older than the cutoff, all subsequent posts
+        // will also be older — stop scrolling this group.
+        if (
+          options?.lookbackCutoff &&
+          post.createdTimeUtc &&
+          post.createdTimeUtc < options.lookbackCutoff
+        ) {
+          reachedLookbackLimit = true;
+          break;
+        }
+
         processedUrls.add(post.postUrl);
         posts.push(post);
         foundNew = true;
       }
+
+      if (reachedLookbackLimit) break;
 
       if (foundNew) {
         staleScrollCount = 0;

@@ -17,6 +17,7 @@ export interface ParsedSettings {
   scrape_date_from: string | null;
   scrape_date_to: string | null;
   max_posts_per_group: number;
+  excluded_locations: string[];
 }
 
 export function parseSettingsRow(row: Settings): ParsedSettings {
@@ -36,5 +37,8 @@ export function parseSettingsRow(row: Settings): ParsedSettings {
     scrape_date_from: row.scrape_date_from ?? null,
     scrape_date_to: row.scrape_date_to ?? null,
     max_posts_per_group: row.max_posts_per_group,
+    excluded_locations: row.excluded_locations
+      ? (JSON.parse(row.excluded_locations) as string[])
+      : [],
   };
 }

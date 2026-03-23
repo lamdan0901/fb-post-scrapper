@@ -123,6 +123,47 @@ export class PromptBuilder {
     criteria: FilterCriteria,
     options?: { commonRules?: string; roleRules?: RoleRules },
   ): string {
+    const criteriaBlock = this.buildCriteriaBlock(criteria, options);
+    return `${criteriaBlock}
+### Facebook Post
+
+<post>
+${postContent}
+</post>`;
+  }
+
+  /**
+   * Assemble a batch user prompt containing multiple posts, each numbered.
+   * The model returns one classification per post, keyed by `post_index`.
+   */
+  buildBatchUserPrompt(
+    posts: string[],
+    criteria: FilterCriteria,
+    options?: { commonRules?: string; roleRules?: RoleRules },
+  ): string {
+    const criteriaBlock = this.buildCriteriaBlock(criteria, options);
+    const postsBlock = posts
+      .map(
+        (content, i) => `### Post ${i}
+
+<post>
+${content}
+</post>`,
+      )
+      .join("\n\n");
+
+    return `${criteriaBlock}
+
+You will classify ${posts.length} posts below. Return a JSON object with a "results" array containing one classification per post. Each result MUST include a "post_index" field (0-based) matching the post number.
+
+${postsBlock}`;
+  }
+
+  /** Shared criteria block used by both single and batch prompts. */
+  private buildCriteriaBlock(
+    criteria: FilterCriteria,
+    options?: { commonRules?: string; roleRules?: RoleRules },
+  ): string {
     const roles = criteria.allowedRoles.join(", ");
     const levels = criteria.allowedLevels.join(", ");
 
@@ -143,7 +184,6 @@ export class PromptBuilder {
     }
     notes += `- If YOE > ${criteria.maxYoe} → reject`;
 
-    // Build custom rules section from common rules + role-specific rules
     let customRules = "";
     if (options?.commonRules) {
       customRules += `\n### Common Rules\n\n${options.commonRules}\n`;
@@ -173,11 +213,6 @@ ${criteria.maxYoe}
 
 Notes:
 ${notes}
-${customRules}
-### Facebook Post
-
-<post>
-${postContent}
-</post>`;
+${customRules}`;
   }
 }

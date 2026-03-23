@@ -49,6 +49,16 @@ async function main() {
       }),
       max_yoe: 5,
       cron_schedule: "0 */4 * * *",
+      excluded_locations: JSON.stringify([
+        "HCM",
+        "HCMC",
+        "Ho Chi Minh",
+        "TP.HCM",
+        "Thành phố Hồ Chí Minh",
+        "Đà Nẵng",
+        "ĐN",
+        "DN",
+      ]),
     },
   });
 

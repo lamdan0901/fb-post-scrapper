@@ -8,7 +8,7 @@ import type { RawPost } from "@job-alert/shared";
 import { CookieManager } from "./cookie-manager.js";
 import { Deduplicator, type DeduplicationStore } from "./deduplicator.js";
 import { SessionExpiredError } from "./errors.js";
-import { GroupScraper } from "./group-scraper.js";
+import { GroupScraper, type ScrapeGroupOptions } from "./group-scraper.js";
 import {
   getBrowserLaunchOptions,
   getContextOptions,
@@ -30,6 +30,8 @@ export interface ScraperConfig {
   maxTotalPosts?: number;
   /** Max duration of a scrape run in milliseconds (default 10 minutes). */
   maxRunDurationMs?: number;
+  /** Stop scraping a group when posts are older than this date. */
+  lookbackCutoff?: Date;
 }
 
 // ── Dependencies ──
@@ -152,10 +154,14 @@ export class ScraperOrchestrator {
         // Each group gets its own page to isolate state (CAPTCHAs, redirects)
         const page = await context.newPage();
         try {
+          const scrapeOptions: ScrapeGroupOptions = {
+            lookbackCutoff: config.lookbackCutoff,
+          };
           const rawPosts = await this.scrapeGroupWithRetry(
             page,
             groupUrl,
             postsToFetch,
+            scrapeOptions,
           );
 
           stats.totalScraped += rawPosts.length;
@@ -211,11 +217,12 @@ export class ScraperOrchestrator {
     page: Page,
     groupUrl: string,
     maxPosts: number,
+    options?: ScrapeGroupOptions,
   ): Promise<RawPost[]> {
     const scraper = new GroupScraper(page);
 
     try {
-      return await scraper.scrapeGroup(groupUrl, maxPosts);
+      return await scraper.scrapeGroup(groupUrl, maxPosts, options);
     } catch (firstError) {
       // Never retry on session expiry — surface immediately.
       if (firstError instanceof SessionExpiredError) throw firstError;
@@ -224,7 +231,7 @@ export class ScraperOrchestrator {
       await randomDelay(RETRY_DELAY_MS, RETRY_DELAY_MS + 2_000);
 
       // Second attempt — let errors propagate to caller.
-      return await scraper.scrapeGroup(groupUrl, maxPosts);
+      return await scraper.scrapeGroup(groupUrl, maxPosts, options);
     }
   }
 }

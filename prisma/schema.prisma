@@ -108,6 +108,7 @@ model Settings {
   scrape_date_from      String? // date range: ISO date string for start bound (inclusive)
   scrape_date_to        String? // date range: ISO date string for end bound (inclusive)
   max_posts_per_group   Int    @default(50)
+  excluded_locations    String @default("[\"HCM\",\"HCMC\",\"Ho Chi Minh\",\"TP.HCM\",\"Thành phố Hồ Chí Minh\",\"Đà Nẵng\",\"ĐN\",\"DN\"]") // JSON array of location strings to exclude
 }
 
 model UserFeedback {
