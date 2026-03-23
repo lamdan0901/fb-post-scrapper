@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ShieldCheck } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { Role, Level } from "@job-alert/shared";
@@ -15,6 +15,8 @@ import {
   useCronStatus,
   useStartCron,
   useStopCron,
+  useCookieInfo,
+  useVerifyCookies,
 } from "../lib/hooks";
 import TagInput from "../components/TagInput";
 import CookieUpload from "../components/CookieUpload";
@@ -250,6 +252,89 @@ function RoleConfigSection({
               className="w-full rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600"
             />
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Cookie Status ──
+
+function CookieStatus() {
+  const { data, isLoading } = useCookieInfo();
+  const verify = useVerifyCookies();
+
+  if (isLoading) {
+    return <p className="text-sm text-gray-500">Checking cookie status…</p>;
+  }
+
+  if (!data || !data.exists) {
+    return (
+      <div className="rounded-lg border border-gray-700 bg-gray-800/40 px-3 py-2 text-sm text-gray-500">
+        No cookies uploaded yet.
+      </div>
+    );
+  }
+
+  const isExpired = data.is_expired;
+  const verifyResult = verify.data;
+
+  return (
+    <div className="space-y-2">
+      <div
+        className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
+          isExpired
+            ? "border-red-800 bg-red-950/30 text-red-400"
+            : "border-green-800 bg-green-950/30 text-green-400"
+        }`}
+      >
+        <div>
+          <span className="font-medium">
+            {isExpired ? "Cookies expired" : "Cookies active"}
+          </span>
+          {data.expires_at && (
+            <span className="ml-2 text-xs opacity-75">
+              — expires{" "}
+              {new Date(data.expires_at).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+            </span>
+          )}
+          {!data.expires_at && (
+            <span className="ml-2 text-xs opacity-75">— expiry unknown</span>
+          )}
+        </div>
+        <button
+          type="button"
+          disabled={verify.isPending}
+          onClick={() =>
+            verify.mutate(undefined, {
+              onSuccess: (res) =>
+                res.valid
+                  ? toast.success("Session verified — cookies are active")
+                  : toast.warning(
+                      "Session check failed — cookies may be expired",
+                    ),
+              onError: (err) => toast.error(`Verify failed: ${err.message}`),
+            })
+          }
+          className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-current/30 px-2.5 py-1 text-xs font-medium opacity-80 transition-opacity hover:opacity-100 disabled:opacity-40"
+        >
+          <ShieldCheck className="size-3.5" />
+          {verify.isPending ? "Checking…" : "Check session"}
+        </button>
+      </div>
+
+      {verifyResult && (
+        <div
+          className={`rounded-lg border px-3 py-2 text-xs ${
+            verifyResult.valid
+              ? "border-green-800 bg-green-950/30 text-green-400"
+              : "border-yellow-800 bg-yellow-950/30 text-yellow-400"
+          }`}
+        >
+          {verifyResult.message}
         </div>
       )}
     </div>
@@ -1024,7 +1109,10 @@ function SettingsForm({
         title="Facebook Cookies"
         description="Upload your Netscape-format cookie file for Facebook authentication."
       >
-        <CookieUpload />
+        <CookieStatus />
+        <div className="mt-4">
+          <CookieUpload />
+        </div>
       </Section>
     </div>
   );

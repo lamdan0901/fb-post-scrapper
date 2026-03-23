@@ -110,6 +110,19 @@ export interface ScraperStatus {
 export interface CookieUploadResponse {
   valid: boolean;
   message: string;
+  expires_at: string | null;
+}
+
+export interface CookieInfo {
+  exists: boolean;
+  expires_at: string | null;
+  is_expired: boolean;
+}
+
+export interface CookieVerifyResponse {
+  valid: boolean;
+  message: string;
+  expires_at: string | null;
 }
 
 export interface CronStatus {
@@ -231,6 +244,14 @@ export function stopCron(): Promise<CronStatus> {
 }
 
 // ── Cookies ──
+
+export function fetchCookieInfo(): Promise<CookieInfo> {
+  return request<CookieInfo>("/cookies/info");
+}
+
+export function verifyCookies(): Promise<CookieVerifyResponse> {
+  return request<CookieVerifyResponse>("/cookies/verify", { method: "POST" });
+}
 
 export function uploadCookies(
   content: string,

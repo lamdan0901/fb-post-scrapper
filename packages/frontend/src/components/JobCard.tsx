@@ -186,8 +186,6 @@ export default function JobCard({ job }: { job: Job }) {
   }
 
   function handleDelete() {
-    if (!window.confirm("Permanently delete this job? This cannot be undone."))
-      return;
     deleteJobMutation.mutate(job.id, {
       onSuccess: () => toast.success("Job deleted"),
       onError: (err) => toast.error(`Failed to delete: ${err.message}`),

@@ -85,7 +85,21 @@ export default function CookieUpload() {
               : "border-yellow-800 bg-yellow-950/30 text-yellow-400"
           }`}
         >
-          {data.message}
+          <p>{data.message}</p>
+          {data.expires_at && (
+            <p className="mt-1 text-xs opacity-80">
+              Expires:{" "}
+              {new Date(data.expires_at).toLocaleString(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short",
+              })}
+              {new Date(data.expires_at) <= new Date() && (
+                <span className="ml-1 font-semibold text-red-400">
+                  (expired)
+                </span>
+              )}
+            </p>
+          )}
         </div>
       )}
 

@@ -18,6 +18,7 @@ import {
   fetchCronStatus,
   startCron,
   stopCron,
+  fetchCookieInfo,
   uploadCookies,
   type JobsQuery,
   type JobsResponse,
@@ -29,6 +30,9 @@ import {
   type RunTimes,
   type CronStatus,
   type CookieUploadResponse,
+  type CookieInfo,
+  type CookieVerifyResponse,
+  verifyCookies,
 } from "./api";
 
 // ── Query Keys ──
@@ -39,6 +43,7 @@ export const queryKeys = {
   scraperStatus: ["scraper-status"] as const,
   runTimes: ["run-times"] as const,
   cronStatus: ["cron-status"] as const,
+  cookieInfo: ["cookie-info"] as const,
 };
 
 // ── Jobs ──
@@ -171,11 +176,29 @@ export function useStopCron() {
 // ── Cookies ──
 
 export function useUploadCookies() {
+  const queryClient = useQueryClient();
   return useMutation<
     CookieUploadResponse,
     Error,
     { content: string; verify?: boolean }
   >({
     mutationFn: ({ content, verify }) => uploadCookies(content, verify),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.cookieInfo });
+    },
+  });
+}
+
+export function useCookieInfo(options?: Partial<UseQueryOptions<CookieInfo>>) {
+  return useQuery({
+    queryKey: queryKeys.cookieInfo,
+    queryFn: fetchCookieInfo,
+    ...options,
+  });
+}
+
+export function useVerifyCookies() {
+  return useMutation<CookieVerifyResponse, Error>({
+    mutationFn: verifyCookies,
   });
 }
