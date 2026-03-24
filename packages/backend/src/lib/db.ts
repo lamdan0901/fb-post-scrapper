@@ -20,4 +20,4 @@ const adapter = new PrismaBetterSqlite3({
   url: resolveDbUrl(process.env["DATABASE_URL"] ?? "file:./dev.db"),
 });
 
-export const prisma = new PrismaClient({ adapter });
+export const prisma: PrismaClient = new PrismaClient({ adapter });

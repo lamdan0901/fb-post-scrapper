@@ -40,35 +40,84 @@ export class TelegramNotifier {
     const body = text !== undefined ? text : textOrChatId;
 
     try {
-      const res = await fetch(`${this.baseUrl}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: body,
-          parse_mode: "HTML",
-        }),
-      });
+      const htmlRes = await this.postMessage(chatId, body, "HTML");
+      if (htmlRes.ok) {
+        return;
+      }
 
-      if (!res.ok) {
-        const errorBody = await res.text().catch(() => "<unreadable>");
+      // Fall back to plain text when Telegram rejects HTML parsing.
+      if (htmlRes.error.includes("can't parse entities")) {
+        const plain = this.toPlainText(body);
+        const plainRes = await this.postMessage(chatId, plain);
+        if (plainRes.ok) {
+          console.warn(
+            "[TelegramNotifier] HTML parse failed; sent notification as plain text instead",
+          );
+          return;
+        }
+
         console.error(
-          `[TelegramNotifier] API error ${res.status}: ${errorBody}`,
+          `[TelegramNotifier] Plain-text fallback failed: ${plainRes.error}`,
         );
         return;
       }
 
-      const json = (await res.json()) as { ok: boolean; description?: string };
-      if (!json.ok) {
-        console.error(
-          `[TelegramNotifier] Telegram responded with ok=false: ${json.description ?? "unknown error"}`,
-        );
-      }
+      console.error(
+        `[TelegramNotifier] Failed to send message: ${htmlRes.error}`,
+      );
     } catch (err) {
       console.error(
         `[TelegramNotifier] Failed to send message (chatId=${chatId}, textLength=${body.length}):`,
         err,
       );
     }
+  }
+
+  private async postMessage(
+    chatId: string,
+    text: string,
+    parseMode?: "HTML",
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    const payload: { chat_id: string; text: string; parse_mode?: "HTML" } = {
+      chat_id: chatId,
+      text,
+    };
+    if (parseMode) {
+      payload.parse_mode = parseMode;
+    }
+
+    const res = await fetch(`${this.baseUrl}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorBody = await res.text().catch(() => "<unreadable>");
+      return { ok: false, error: `API ${res.status}: ${errorBody}` };
+    }
+
+    const json = (await res.json()) as { ok: boolean; description?: string };
+    if (!json.ok) {
+      return {
+        ok: false,
+        error: json.description ?? "Telegram responded with ok=false",
+      };
+    }
+
+    return { ok: true };
+  }
+
+  private toPlainText(htmlMessage: string): string {
+    return htmlMessage
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .trim();
   }
 }

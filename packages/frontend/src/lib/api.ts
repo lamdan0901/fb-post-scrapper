@@ -98,9 +98,13 @@ export interface ScraperRunResponse {
 export interface ScraperStatus {
   status: string;
   runId?: string;
+  source?: "manual" | "cron";
   startedAt?: string;
   completedAt?: string;
   error?: string;
+  result?: {
+    savedCount: number;
+  };
   stats?: {
     processed: number;
     matched: number;
@@ -223,6 +227,12 @@ export function updateSettings(body: UpdateSettingsBody): Promise<Settings> {
 
 export function triggerScraper(): Promise<ScraperRunResponse> {
   return request<ScraperRunResponse>("/scraper/run", { method: "POST" });
+}
+
+export function triggerFilterOnly(): Promise<ScraperRunResponse> {
+  return request<ScraperRunResponse>("/scraper/filter-only", {
+    method: "POST",
+  });
 }
 
 export function fetchScraperStatus(): Promise<ScraperStatus> {

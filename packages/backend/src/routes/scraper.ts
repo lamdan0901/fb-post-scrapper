@@ -21,9 +21,41 @@ async function executeRun(source: "manual" | "cron" = "manual"): Promise<void> {
   }
 }
 
+async function executeFilterOnly(
+  source: "manual" | "cron" = "manual",
+): Promise<void> {
+  try {
+    const runner = PipelineRunner.fromEnv(prisma);
+    const result = await runner.runFilterOnlyWithTimeout(source);
+    scraperState.completeRun(result.stats);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown pipeline error";
+    scraperState.failRun(message);
+  }
+}
+
 // ── Router ──
 
 export const scraperRouter: RouterType = Router();
+
+// POST /scraper/filter-only — trigger async filter only run
+scraperRouter.post("/filter-only", scraperLimiter, async (_req, res) => {
+  const settings = await prisma.settings.findUnique({ where: { id: 1 } });
+  if (!settings) {
+    throw new NotFoundError("Settings not configured");
+  }
+
+  const runId = scraperState.tryStartRun("manual");
+  if (!runId) {
+    throw new ConflictError("A scrape run is already in progress");
+  }
+
+  // Fire-and-forget — do not await
+  executeFilterOnly("manual");
+
+  res.json({ runId, status: "running" });
+});
 
 // POST /scraper/run — trigger async scraping run (strict rate limit: 2/min)
 scraperRouter.post("/run", scraperLimiter, async (_req, res) => {

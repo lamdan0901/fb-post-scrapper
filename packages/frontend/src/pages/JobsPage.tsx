@@ -2,7 +2,7 @@ import { useState } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 import type { JobsQuery } from "../lib/api";
-import { useJobs, useRunTimes } from "../lib/hooks";
+import { useJobs, useRunTimes, useScraperStatus } from "../lib/hooks";
 import FilterBar from "../components/FilterBar";
 import JobCard from "../components/JobCard";
 
@@ -159,6 +159,17 @@ export default function JobsPage() {
     placeholderData: keepPreviousData,
   });
   const { data: runTimes } = useRunTimes();
+  const { data: scraperStatus } = useScraperStatus({
+    refetchInterval: (query) => {
+      const current = query.state.data;
+      return current?.status === "running" ? 3000 : false;
+    },
+  });
+
+  const lastManualRunNewJobs =
+    scraperStatus?.status === "completed" && scraperStatus.source === "manual"
+      ? (scraperStatus.result?.savedCount ?? 0)
+      : null;
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -178,6 +189,12 @@ export default function JobsPage() {
                 Last auto run:{" "}
                 {runTimes.lastCronRun ? timeAgo(runTimes.lastCronRun) : "never"}
               </span>
+              {lastManualRunNewJobs !== null && (
+                <span>
+                  Last run completed: {lastManualRunNewJobs} new post
+                  {lastManualRunNewJobs !== 1 ? "s" : ""} added
+                </span>
+              )}
             </div>
           )}
         </div>

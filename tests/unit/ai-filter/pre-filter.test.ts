@@ -2,8 +2,16 @@ import { describe, it, expect } from "vitest";
 import { ContentPreprocessor } from "../../../packages/ai-filter/src/preprocessor.js";
 import { PreFilter } from "../../../packages/ai-filter/src/pre-filter.js";
 
-function makePreFilter(keywords: string[], blacklist: string[]): PreFilter {
-  const preprocessor = new ContentPreprocessor({ keywords, blacklist });
+function makePreFilter(
+  keywords: string[],
+  blacklist: string[],
+  excludedLocations: string[] = [],
+): PreFilter {
+  const preprocessor = new ContentPreprocessor({
+    keywords,
+    blacklist,
+    excludedLocations,
+  });
   return new PreFilter(preprocessor);
 }
 
@@ -30,6 +38,24 @@ describe("PreFilter", () => {
       const result = filter.evaluate("We are looking for a sales manager");
       expect(result.shouldCallAI).toBe(false);
       expect(result.skipReason).toBe("Not tech-related");
+    });
+  });
+
+  describe("excluded locations", () => {
+    it("returns shouldCallAI=false with reason 'Excluded location' when no remote option", () => {
+      const filter = makePreFilter(["React"], [], ["HCM", "Da Nang"]);
+      const result = filter.evaluate("Hiring React dev in HCM");
+
+      expect(result.shouldCallAI).toBe(false);
+      expect(result.skipReason).toBe("Excluded location");
+    });
+
+    it("does not skip when excluded locations are mixed with Remote option", () => {
+      const filter = makePreFilter(["React"], [], ["HCM", "Da Nang"]);
+      const result = filter.evaluate("React role [Da Nang/HCM/Remote]");
+
+      expect(result.shouldCallAI).toBe(true);
+      expect(result.skipReason).toBeUndefined();
     });
   });
 

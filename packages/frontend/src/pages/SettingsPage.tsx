@@ -10,6 +10,7 @@ import {
   useSettings,
   useUpdateSettings,
   useTriggerScraper,
+  useTriggerFilterOnly,
   useScraperStatus,
   useRunTimes,
   useCronStatus,
@@ -420,6 +421,7 @@ function CronControl() {
 
 function ScraperControl() {
   const trigger = useTriggerScraper();
+  const filterTrigger = useTriggerFilterOnly();
   const { data: status } = useScraperStatus({
     refetchInterval: (query) => {
       const d = query.state.data;
@@ -433,12 +435,12 @@ function ScraperControl() {
   return (
     <Section
       title="Manual Scrape"
-      description="Trigger a scraping run manually."
+      description="Trigger a scraping run manually, or filter existing raw posts."
     >
       <div className="flex items-center gap-4">
         <button
           type="button"
-          disabled={isRunning || trigger.isPending}
+          disabled={isRunning || trigger.isPending || filterTrigger.isPending}
           onClick={() =>
             trigger.mutate(undefined, {
               onSuccess: () => toast.success("Scraper started"),
@@ -455,14 +457,29 @@ function ScraperControl() {
               : "Run Scraper"}
         </button>
 
+        <button
+          type="button"
+          disabled={isRunning || trigger.isPending || filterTrigger.isPending}
+          onClick={() =>
+            filterTrigger.mutate(undefined, {
+              onSuccess: () => toast.success("AI Filter alone started"),
+              onError: (err) =>
+                toast.error(`Failed to start AI filter: ${err.message}`),
+            })
+          }
+          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {filterTrigger.isPending ? "Starting Filter…" : "Run Filter Only"}
+        </button>
+
         {status?.status === "idle" && (
           <span className="text-sm text-gray-500">No runs yet</span>
         )}
       </div>
 
-      {trigger.error && (
+      {(trigger.error || filterTrigger.error) && (
         <div className="mt-3 rounded-lg border border-red-800 bg-red-950/30 p-3 text-sm text-red-400">
-          {trigger.error.message}
+          {(trigger.error || filterTrigger.error)?.message}
         </div>
       )}
 

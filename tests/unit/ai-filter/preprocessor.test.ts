@@ -171,4 +171,51 @@ describe("ContentPreprocessor", () => {
       expect(p.isBlacklisted("Job at EvilCorp")).toBe(true);
     });
   });
+
+  // ── isLocationExcluded() ──
+  describe("isLocationExcluded()", () => {
+    it("returns true when excluded location appears and no remote option exists", () => {
+      const p = new ContentPreprocessor({
+        keywords: [],
+        blacklist: [],
+        excludedLocations: ["HCM", "Da Nang"],
+      });
+
+      expect(p.isLocationExcluded("Hiring Frontend dev in HCM office")).toBe(
+        true,
+      );
+    });
+
+    it("returns false for mixed location options containing Remote", () => {
+      const p = new ContentPreprocessor({
+        keywords: [],
+        blacklist: [],
+        excludedLocations: ["HCM", "Da Nang"],
+      });
+
+      expect(p.isLocationExcluded("[Da Nang/HCM/Remote]")).toBe(false);
+    });
+
+    it("returns false when a post includes both excluded and remote-only positions", () => {
+      const p = new ContentPreprocessor({
+        keywords: [],
+        blacklist: [],
+        excludedLocations: ["HCM"],
+      });
+
+      expect(p.isLocationExcluded("Backend (HCM)\nFrontend (Remote)")).toBe(
+        false,
+      );
+    });
+
+    it("returns false when no excluded locations are matched", () => {
+      const p = new ContentPreprocessor({
+        keywords: [],
+        blacklist: [],
+        excludedLocations: ["HCM"],
+      });
+
+      expect(p.isLocationExcluded("Frontend role in Ha Noi")).toBe(false);
+    });
+  });
 });

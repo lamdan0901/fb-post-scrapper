@@ -13,6 +13,7 @@ import {
   fetchSettings,
   updateSettings,
   triggerScraper,
+  triggerFilterOnly,
   fetchScraperStatus,
   fetchRunTimes,
   fetchCronStatus,
@@ -137,6 +138,16 @@ export function useTriggerScraper() {
   const queryClient = useQueryClient();
   return useMutation<ScraperRunResponse, Error>({
     mutationFn: triggerScraper,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
+    },
+  });
+}
+
+export function useTriggerFilterOnly() {
+  const queryClient = useQueryClient();
+  return useMutation<ScraperRunResponse, Error>({
+    mutationFn: triggerFilterOnly,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
     },

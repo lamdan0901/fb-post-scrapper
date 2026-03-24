@@ -26,6 +26,7 @@ const TECH_TERM_ALIASES: ReadonlyMap<RegExp, string> = new Map([
  * Covers most emoji via the Unicode Extended_Pictographic property.
  */
 const REPEATED_EMOJI_RE = /(\p{Extended_Pictographic})\1+/gu;
+const REMOTE_OPTION_RE = /\b(remote|wfh|work from home)\b/i;
 
 // ── ContentPreprocessor ──
 
@@ -106,9 +107,20 @@ export class ContentPreprocessor {
   /**
    * Check whether the text contains any excluded location term.
    * Returns `false` when no excluded locations are configured.
+   *
+   * If a post offers a Remote option anywhere in its location text,
+   * it should not be excluded even when it also mentions excluded cities
+   * (e.g. "[Da Nang/HCM/Remote]").
    */
   isLocationExcluded(text: string): boolean {
-    return this.locationPatterns.some((re) => re.test(text));
+    if (this.locationPatterns.length === 0) return false;
+
+    const hasExcludedLocation = this.locationPatterns.some((re) =>
+      re.test(text),
+    );
+    if (!hasExcludedLocation) return false;
+
+    return !REMOTE_OPTION_RE.test(text);
   }
 }
 
