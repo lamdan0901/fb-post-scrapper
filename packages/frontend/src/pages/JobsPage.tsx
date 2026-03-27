@@ -252,9 +252,11 @@ export default function JobsPage() {
       {/* Job cards grid */}
       {data && data.jobs.length > 0 && (
         <>
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="columns-1 gap-4 md:columns-2">
             {data.jobs.map((job) => (
-              <JobCard key={job.id} job={job} />
+              <div key={job.id} className="break-inside-avoid mb-4">
+                <JobCard job={job} />
+              </div>
             ))}
           </div>
 
