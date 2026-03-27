@@ -3,7 +3,10 @@ import { z } from "zod";
 import { Role, Level } from "@job-alert/shared";
 import { prisma } from "../lib/db.js";
 import { NotFoundError } from "../errors.js";
-import { parseSettingsRow } from "../lib/settings-helpers.js";
+import {
+  parseSettingsRow,
+  normalizeGroupUrl,
+} from "../lib/settings-helpers.js";
 import { scheduler } from "../lib/scheduler.js";
 
 export { parseSettingsRow } from "../lib/settings-helpers.js";
@@ -146,11 +149,12 @@ settingsRouter.get("/", async (_req, res) => {
 // PUT /settings — validate and update settings
 settingsRouter.put("/", async (req, res) => {
   const body = updateSettingsSchema.parse(req.body);
+  const normalizedTargetGroups = body.target_groups.map(normalizeGroupUrl);
 
   const row = await prisma.settings.update({
     where: { id: 1 },
     data: {
-      target_groups: JSON.stringify(body.target_groups),
+      target_groups: JSON.stringify(normalizedTargetGroups),
       target_keywords: JSON.stringify(body.target_keywords),
       blacklist: JSON.stringify(body.blacklist),
       allowed_roles: JSON.stringify(body.allowed_roles),

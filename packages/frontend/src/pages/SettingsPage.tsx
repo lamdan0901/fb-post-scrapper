@@ -11,6 +11,7 @@ import {
   useUpdateSettings,
   useTriggerScraper,
   useTriggerFilterOnly,
+  useCancelScraper,
   useScraperStatus,
   useRunTimes,
   useCronStatus,
@@ -422,15 +423,33 @@ function CronControl() {
 function ScraperControl() {
   const trigger = useTriggerScraper();
   const filterTrigger = useTriggerFilterOnly();
+  const cancelTrigger = useCancelScraper();
   const { data: status } = useScraperStatus({
     refetchInterval: (query) => {
       const d = query.state.data;
-      return d?.status === "running" ? 3000 : false;
+      return d?.status === "running" || d?.status === "cancelling"
+        ? 3000
+        : false;
     },
   });
   const { data: runTimes } = useRunTimes();
 
-  const isRunning = status?.status === "running";
+  const isRunning =
+    status?.status === "running" || status?.status === "cancelling";
+  const isCancelling = status?.status === "cancelling";
+  const activeRunType = status?.runType ?? "scraper";
+  const activeRunLabel =
+    activeRunType === "filter-only" ? "Filter Only" : "Scraper";
+
+  function cancelRun() {
+    cancelTrigger.mutate(
+      { runId: status?.runId },
+      {
+        onSuccess: () => toast.success("Cancellation requested"),
+        onError: (err) => toast.error(`Failed to cancel run: ${err.message}`),
+      },
+    );
+  }
 
   return (
     <Section
@@ -438,48 +457,77 @@ function ScraperControl() {
       description="Trigger a scraping run manually, or filter existing raw posts."
     >
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          disabled={isRunning || trigger.isPending || filterTrigger.isPending}
-          onClick={() =>
-            trigger.mutate(undefined, {
-              onSuccess: () => toast.success("Scraper started"),
-              onError: (err) =>
-                toast.error(`Failed to start scraper: ${err.message}`),
-            })
-          }
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isRunning
-            ? "Running…"
-            : trigger.isPending
-              ? "Starting…"
-              : "Run Scraper"}
-        </button>
+        {!isRunning && (
+          <>
+            <button
+              type="button"
+              disabled={
+                trigger.isPending ||
+                filterTrigger.isPending ||
+                cancelTrigger.isPending
+              }
+              onClick={() => {
+                trigger.mutate(undefined, {
+                  onSuccess: () => toast.success("Scraper started"),
+                  onError: (err) =>
+                    toast.error(`Failed to start scraper: ${err.message}`),
+                });
+              }}
+              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {trigger.isPending ? "Starting…" : "Run Scraper"}
+            </button>
 
-        <button
-          type="button"
-          disabled={isRunning || trigger.isPending || filterTrigger.isPending}
-          onClick={() =>
-            filterTrigger.mutate(undefined, {
-              onSuccess: () => toast.success("AI Filter alone started"),
-              onError: (err) =>
-                toast.error(`Failed to start AI filter: ${err.message}`),
-            })
-          }
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {filterTrigger.isPending ? "Starting Filter…" : "Run Filter Only"}
-        </button>
+            <button
+              type="button"
+              disabled={
+                trigger.isPending ||
+                filterTrigger.isPending ||
+                cancelTrigger.isPending
+              }
+              onClick={() => {
+                filterTrigger.mutate(undefined, {
+                  onSuccess: () => toast.success("AI Filter alone started"),
+                  onError: (err) =>
+                    toast.error(`Failed to start AI filter: ${err.message}`),
+                });
+              }}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {filterTrigger.isPending ? "Starting Filter…" : "Run Filter Only"}
+            </button>
+          </>
+        )}
+
+        {isRunning && (
+          <>
+            <button
+              type="button"
+              disabled={cancelTrigger.isPending || isCancelling}
+              onClick={cancelRun}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {cancelTrigger.isPending || isCancelling
+                ? `Cancelling ${activeRunLabel}…`
+                : `Cancel ${activeRunLabel}`}
+            </button>
+            <span className="text-sm text-gray-400">
+              {activeRunLabel} run is active
+            </span>
+          </>
+        )}
 
         {status?.status === "idle" && (
           <span className="text-sm text-gray-500">No runs yet</span>
         )}
       </div>
 
-      {(trigger.error || filterTrigger.error) && (
+      {(trigger.error || filterTrigger.error || cancelTrigger.error) && (
         <div className="mt-3 rounded-lg border border-red-800 bg-red-950/30 p-3 text-sm text-red-400">
-          {(trigger.error || filterTrigger.error)?.message}
+          {
+            (trigger.error || filterTrigger.error || cancelTrigger.error)
+              ?.message
+          }
         </div>
       )}
 
@@ -488,54 +536,125 @@ function ScraperControl() {
           className={`mt-4 rounded-lg border p-4 text-sm ${
             status.status === "running"
               ? "border-blue-800 bg-blue-950/30"
-              : status.status === "completed"
-                ? "border-green-800 bg-green-950/30"
-                : "border-red-800 bg-red-950/30"
+              : status.status === "cancelling"
+                ? "border-orange-800 bg-orange-950/30"
+                : status.status === "completed"
+                  ? "border-green-800 bg-green-950/30"
+                  : status.status === "cancelled"
+                    ? "border-yellow-800 bg-yellow-950/30"
+                    : "border-red-800 bg-red-950/30"
           }`}
         >
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-2 w-full">
             {status.status === "running" && (
               <span className="mt-0.5 inline-block h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
             )}
-            <span
-              className={`break-all ${
-                status.status === "running"
-                  ? "text-blue-300"
-                  : status.status === "completed"
-                    ? "text-green-400"
-                    : "text-red-400"
-              }`}
-            >
-              {status.status === "running"
-                ? "Scraping in progress…"
-                : status.status === "completed"
-                  ? "Last run completed"
-                  : `Last run failed: ${status.error ?? "Unknown error"}`}
-            </span>
-          </div>
+            <div className="flex flex-col gap-1 w-full">
+              <span
+                className={`break-all ${
+                  status.status === "running"
+                    ? "text-blue-300"
+                    : status.status === "cancelling"
+                      ? "text-orange-300"
+                      : status.status === "completed"
+                        ? "text-green-400"
+                        : status.status === "cancelled"
+                          ? "text-yellow-300"
+                          : "text-red-400"
+                }`}
+              >
+                {status.status === "running"
+                  ? activeRunType === "filter-only"
+                    ? "Filter-only run in progress…"
+                    : "Scraping in progress…"
+                  : status.status === "cancelling"
+                    ? activeRunType === "filter-only"
+                      ? "Cancelling filter-only run…"
+                      : "Cancelling scrape run…"
+                    : status.status === "completed"
+                      ? activeRunType === "filter-only"
+                        ? "Last filter-only run completed"
+                        : "Last scrape run completed"
+                      : status.status === "cancelled"
+                        ? activeRunType === "filter-only"
+                          ? "Last filter-only run cancelled by user"
+                          : "Last scrape run cancelled by user"
+                        : activeRunType === "filter-only"
+                          ? `Last filter-only run failed: ${status.error ?? "Unknown error"}`
+                          : `Last scrape run failed: ${status.error ?? "Unknown error"}`}
+              </span>
 
-          {status.stats && (
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {(
-                [
-                  ["Processed", status.stats.processed],
-                  ["Matched", status.stats.matched],
-                  ["Skipped", status.stats.skipped],
-                  ["API Calls", status.stats.apiCallsUsed],
-                ] as const
-              ).map(([label, val]) => (
-                <div
-                  key={label}
-                  className="rounded-md bg-gray-800/50 px-3 py-2 text-center"
-                >
-                  <div className="text-lg font-semibold text-gray-200">
-                    {val}
-                  </div>
-                  <div className="text-xs text-gray-500">{label}</div>
-                </div>
-              ))}
+              {status.status === "completed" && status.result && (
+                <>
+                  {activeRunType === "filter-only" ? (
+                    <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 w-full">
+                      {(
+                        [
+                          ["AI Processed", status.result.ai.processed],
+                          ["Matched", status.result.ai.matched],
+                          ["Skipped", status.result.ai.skipped],
+                          ["API Calls", status.result.ai.apiCallsUsed],
+                          ["Saved", status.result.savedCount],
+                        ] as const
+                      ).map(([label, val]) => (
+                        <div
+                          key={label}
+                          className="rounded-md bg-gray-900/50 border border-gray-700/50 px-3 py-3 text-center"
+                        >
+                          <div className="text-xl font-semibold text-gray-200">
+                            {val}
+                          </div>
+                          <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">
+                            {label}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mt-2 text-xs text-gray-400">
+                        Groups Completed is shown as completed/planned for this
+                        run.
+                      </p>
+                      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 w-full">
+                        {(
+                          [
+                            [
+                              "Groups Completed",
+                              `${status.result.scrape.groupsSucceeded}/${status.result.scrape.groupsAttempted}`,
+                            ],
+                            [
+                              "Groups Failed",
+                              status.result.scrape.groupsFailed,
+                            ],
+                            ["Scraped", status.result.scrape.totalScraped],
+                            ["New Posts", status.result.scrape.totalNew],
+                            ["AI Processed", status.result.ai.processed],
+                            ["Matched", status.result.ai.matched],
+                            ["Skipped", status.result.ai.skipped],
+                            ["API Calls", status.result.ai.apiCallsUsed],
+                            ["Saved", status.result.savedCount],
+                          ] as const
+                        ).map(([label, val]) => (
+                          <div
+                            key={label}
+                            className="rounded-md bg-gray-900/50 border border-gray-700/50 px-3 py-3 text-center"
+                          >
+                            <div className="text-xl font-semibold text-gray-200">
+                              {val}
+                            </div>
+                            <div className="text-xs font-medium text-gray-500 mt-1 uppercase tracking-wider">
+                              {label}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
 

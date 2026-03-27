@@ -60,7 +60,8 @@ export class GroupScraper {
     // Navigate to group sorted by newest first
     const url = new URL(groupUrl);
     url.searchParams.set("sorting_setting", "CHRONOLOGICAL");
-    await this.page.goto(url.toString(), {
+    const normalizedGroupUrl = url.toString();
+    await this.page.goto(normalizedGroupUrl, {
       waitUntil: "domcontentloaded",
       timeout: 30_000,
     });
@@ -80,7 +81,7 @@ export class GroupScraper {
       // Guard: stop if we've exceeded the fallback timeout (only active when no lookback)
       if (groupDeadline && Date.now() > groupDeadline) {
         console.warn(
-          `[GroupScraper] Timeout reached for ${groupUrl} — collected ${posts.length} posts`,
+          `[GroupScraper] Timeout reached for ${normalizedGroupUrl} — collected ${posts.length} posts`,
         );
         break;
       }
@@ -91,7 +92,7 @@ export class GroupScraper {
       for (const el of postElements) {
         if (posts.length >= maxPosts) break;
 
-        const post = await this.extractPost(el, groupUrl);
+        const post = await this.extractPost(el, normalizedGroupUrl);
         if (!post) continue;
         if (processedUrls.has(post.postUrl)) continue;
 

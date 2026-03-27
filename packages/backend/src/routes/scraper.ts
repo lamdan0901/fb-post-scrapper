@@ -4,34 +4,45 @@ import { scraperState } from "../lib/scraper-state.js";
 import { ConflictError, NotFoundError, ValidationError } from "../errors.js";
 import { parseSettingsRow } from "../lib/settings-helpers.js";
 import { PipelineRunner } from "../lib/pipeline-runner.js";
-import { scraperLimiter } from "../middleware/rate-limit.js";
+import {
+  scraperCancelLimiter,
+  scraperLimiter,
+} from "../middleware/rate-limit.js";
 import { scheduler } from "../lib/scheduler.js";
 
 // ── Async run execution (fire-and-forget) ──
 
-async function executeRun(source: "manual" | "cron" = "manual"): Promise<void> {
-  try {
-    const runner = PipelineRunner.fromEnv(prisma);
-    const result = await runner.runWithTimeout(source);
-    scraperState.completeRun(result.stats);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown pipeline error";
-    scraperState.failRun(message);
-  }
-}
-
-async function executeFilterOnly(
+async function executeRunFor(
+  runId: string,
   source: "manual" | "cron" = "manual",
 ): Promise<void> {
   try {
     const runner = PipelineRunner.fromEnv(prisma);
-    const result = await runner.runFilterOnlyWithTimeout(source);
-    scraperState.completeRun(result.stats);
+    const result = await runner.runWithTimeout(source, undefined, runId);
+    scraperState.completeRunFor(runId, result.stats);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown pipeline error";
-    scraperState.failRun(message);
+    scraperState.failRunFor(runId, message);
+  }
+}
+
+async function executeFilterOnlyFor(
+  runId: string,
+  source: "manual" | "cron" = "manual",
+): Promise<void> {
+  try {
+    const runner = PipelineRunner.fromEnv(prisma);
+    const result = await runner.runFilterOnlyWithTimeout(
+      source,
+      undefined,
+      runId,
+    );
+    scraperState.completeRunFor(runId, result.stats);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown pipeline error";
+    scraperState.failRunFor(runId, message);
   }
 }
 
@@ -46,13 +57,13 @@ scraperRouter.post("/filter-only", scraperLimiter, async (_req, res) => {
     throw new NotFoundError("Settings not configured");
   }
 
-  const runId = scraperState.tryStartRun("manual");
+  const runId = scraperState.tryStartRun("manual", "filter-only");
   if (!runId) {
     throw new ConflictError("A scrape run is already in progress");
   }
 
   // Fire-and-forget — do not await
-  executeFilterOnly("manual");
+  void executeFilterOnlyFor(runId, "manual");
 
   res.json({ runId, status: "running" });
 });
@@ -74,15 +85,34 @@ scraperRouter.post("/run", scraperLimiter, async (_req, res) => {
     throw new ValidationError("COOKIE_PATH environment variable not set");
   }
 
-  const runId = scraperState.tryStartRun("manual");
+  const runId = scraperState.tryStartRun("manual", "scraper");
   if (!runId) {
     throw new ConflictError("A scrape run is already in progress");
   }
 
   // Fire-and-forget — do not await
-  executeRun("manual");
+  void executeRunFor(runId, "manual");
 
   res.json({ runId, status: "running" });
+});
+
+// POST /scraper/cancel — cancel the currently running scrape/filter run
+scraperRouter.post("/cancel", scraperCancelLimiter, async (req, res) => {
+  const runId =
+    typeof req.body?.runId === "string" && req.body.runId.length > 0
+      ? req.body.runId
+      : undefined;
+
+  const state = scraperState.requestCancel(runId);
+  if (!state) {
+    throw new ConflictError(
+      runId
+        ? "No matching running run found for cancellation"
+        : "No scrape run is currently in progress",
+    );
+  }
+
+  res.json(state);
 });
 
 // GET /scraper/status — return current/last run state

@@ -14,6 +14,7 @@ import {
   updateSettings,
   triggerScraper,
   triggerFilterOnly,
+  cancelScraper,
   fetchScraperStatus,
   fetchRunTimes,
   fetchCronStatus,
@@ -21,6 +22,8 @@ import {
   stopCron,
   fetchCookieInfo,
   uploadCookies,
+  fetchRawPostDates,
+  fetchRawPosts,
   type JobsQuery,
   type JobsResponse,
   type Job,
@@ -28,11 +31,15 @@ import {
   type UpdateSettingsBody,
   type ScraperRunResponse,
   type ScraperStatus,
+  type CancelScraperBody,
   type RunTimes,
   type CronStatus,
   type CookieUploadResponse,
   type CookieInfo,
   type CookieVerifyResponse,
+  type RawPostsDatesResponse,
+  type RawPostsResponse,
+  type RawPostsQuery,
   verifyCookies,
 } from "./api";
 
@@ -45,6 +52,8 @@ export const queryKeys = {
   runTimes: ["run-times"] as const,
   cronStatus: ["cron-status"] as const,
   cookieInfo: ["cookie-info"] as const,
+  rawPostDates: ["raw-post-dates"] as const,
+  rawPosts: (query: RawPostsQuery) => ["raw-posts", query] as const,
 };
 
 // ── Jobs ──
@@ -154,6 +163,16 @@ export function useTriggerFilterOnly() {
   });
 }
 
+export function useCancelScraper() {
+  const queryClient = useQueryClient();
+  return useMutation<ScraperStatus, Error, CancelScraperBody>({
+    mutationFn: (body) => cancelScraper(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
+    },
+  });
+}
+
 // ── Cron ──
 
 export function useCronStatus(options?: Partial<UseQueryOptions<CronStatus>>) {
@@ -211,5 +230,28 @@ export function useCookieInfo(options?: Partial<UseQueryOptions<CookieInfo>>) {
 export function useVerifyCookies() {
   return useMutation<CookieVerifyResponse, Error>({
     mutationFn: verifyCookies,
+  });
+}
+
+// ── Raw Posts ──
+
+export function useRawPostDates(
+  options?: Partial<UseQueryOptions<RawPostsDatesResponse>>,
+) {
+  return useQuery({
+    queryKey: queryKeys.rawPostDates,
+    queryFn: fetchRawPostDates,
+    ...options,
+  });
+}
+
+export function useRawPosts(
+  query: RawPostsQuery = {},
+  options?: Partial<UseQueryOptions<RawPostsResponse>>,
+) {
+  return useQuery({
+    queryKey: queryKeys.rawPosts(query),
+    queryFn: () => fetchRawPosts(query),
+    ...options,
   });
 }

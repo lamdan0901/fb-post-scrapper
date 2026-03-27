@@ -99,18 +99,31 @@ export interface ScraperStatus {
   status: string;
   runId?: string;
   source?: "manual" | "cron";
+  runType?: "scraper" | "filter-only";
   startedAt?: string;
   completedAt?: string;
   error?: string;
   result?: {
+    scrape: {
+      groupsAttempted: number;
+      groupsSucceeded: number;
+      groupsFailed: number;
+      totalScraped: number;
+      totalNew: number;
+    };
+    ai: {
+      total: number;
+      processed: number;
+      matched: number;
+      skipped: number;
+      apiCallsUsed: number;
+    };
     savedCount: number;
   };
-  stats?: {
-    processed: number;
-    matched: number;
-    skipped: number;
-    apiCallsUsed: number;
-  };
+}
+
+export interface CancelScraperBody {
+  runId?: string;
 }
 
 export interface CookieUploadResponse {
@@ -176,6 +189,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// ── Raw Posts ──
+
+export interface RawPost {
+  id: number;
+  fb_post_id: string | null;
+  content: string;
+  post_url: string;
+  poster_name: string;
+  poster_url: string;
+  post_url_hash: string;
+  content_hash: string;
+  group_url: string;
+  scrape_date: string;
+  created_time_raw: string;
+  created_time_utc: string | null;
+  first_seen_at: string;
+  created_at: string;
+}
+
+export interface RawPostsDatesResponse {
+  dates: string[];
+}
+
+export interface RawPostsResponse {
+  posts: RawPost[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface RawPostsQuery {
+  date?: string;
+  page?: number;
+  limit?: number;
+}
+
 // ── Jobs ──
 
 export function fetchJobs(query: JobsQuery = {}): Promise<JobsResponse> {
@@ -235,6 +284,15 @@ export function triggerFilterOnly(): Promise<ScraperRunResponse> {
   });
 }
 
+export function cancelScraper(
+  body: CancelScraperBody = {},
+): Promise<ScraperStatus> {
+  return request<ScraperStatus>("/scraper/cancel", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export function fetchScraperStatus(): Promise<ScraperStatus> {
   return request<ScraperStatus>("/scraper/status");
 }
@@ -273,4 +331,23 @@ export function uploadCookies(
     method: "POST",
     body: JSON.stringify({ content, verify }),
   });
+}
+
+// ── Raw Posts ──
+
+export function fetchRawPostDates(): Promise<RawPostsDatesResponse> {
+  return request<RawPostsDatesResponse>("/raw-posts/dates");
+}
+
+export function fetchRawPosts(
+  query: RawPostsQuery = {},
+): Promise<RawPostsResponse> {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== "") {
+      params.set(key, String(value));
+    }
+  }
+  const qs = params.toString();
+  return request<RawPostsResponse>(`/raw-posts${qs ? `?${qs}` : ""}`);
 }

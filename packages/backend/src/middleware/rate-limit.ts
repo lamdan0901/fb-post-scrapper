@@ -17,3 +17,12 @@ export const scraperLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many scraper requests, please try again later" },
 });
+
+/** Cancel rate limit: allow more frequent cancel attempts than run triggers. */
+export const scraperCancelLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many cancel requests, please try again later" },
+});

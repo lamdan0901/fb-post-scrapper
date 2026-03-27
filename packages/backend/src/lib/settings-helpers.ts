@@ -20,10 +20,21 @@ export interface ParsedSettings {
   excluded_locations: string[];
 }
 
+/** Ensure each Facebook group URL includes chronological sorting. */
+export function normalizeGroupUrl(url: string): string {
+  const parsed = new URL(url);
+  parsed.searchParams.set("sorting_setting", "CHRONOLOGICAL");
+  return parsed.toString();
+}
+
 export function parseSettingsRow(row: Settings): ParsedSettings {
+  const targetGroups = (JSON.parse(row.target_groups) as string[]).map(
+    normalizeGroupUrl,
+  );
+
   return {
     id: row.id,
-    target_groups: JSON.parse(row.target_groups) as string[],
+    target_groups: targetGroups,
     target_keywords: JSON.parse(row.target_keywords) as string[],
     blacklist: JSON.parse(row.blacklist) as string[],
     allowed_roles: JSON.parse(row.allowed_roles) as Role[],

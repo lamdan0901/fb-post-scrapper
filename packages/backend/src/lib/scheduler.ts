@@ -48,7 +48,7 @@ class CronScheduler {
 
   /** Execute a cron-triggered pipeline run with concurrent-run prevention. */
   private executeCronRun(): void {
-    const runId = scraperState.tryStartRun("cron");
+    const runId = scraperState.tryStartRun("cron", "scraper");
     if (!runId) {
       console.log(
         "[Scheduler] Skipping cron run — a run is already in progress",
@@ -61,15 +61,15 @@ class CronScheduler {
     const runner = PipelineRunner.fromEnv(prisma);
 
     runner
-      .runWithTimeout("cron")
+      .runWithTimeout("cron", undefined, runId)
       .then((result) => {
-        scraperState.completeRun(result.stats);
+        scraperState.completeRunFor(runId, result.stats);
         console.log("[Scheduler] Cron run completed successfully");
       })
       .catch((error) => {
         const message =
           error instanceof Error ? error.message : "Unknown pipeline error";
-        scraperState.failRun(message);
+        scraperState.failRunFor(runId, message);
         console.error(`[Scheduler] Cron run failed: ${message}`);
       });
   }

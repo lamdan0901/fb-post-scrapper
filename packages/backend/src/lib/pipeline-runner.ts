@@ -17,6 +17,7 @@ import {
 import { isUniqueConstraintError } from "./prisma-errors.js";
 import { parseSettingsRow } from "./settings-helpers.js";
 import { createDeduplicationStore } from "./dedup-store.js";
+import { scraperState } from "./scraper-state.js";
 import type { PipelineRunStats, RunSource } from "./scraper-state.js";
 
 // ── Constants ──
@@ -53,7 +54,10 @@ export class PipelineRunner {
     return new PipelineRunner(prisma, notifier);
   }
 
-  async run(source: RunSource = "manual"): Promise<PipelineRunResult> {
+  async run(
+    source: RunSource = "manual",
+    runId?: string,
+  ): Promise<PipelineRunResult> {
     // ── 1. Load settings ──
     const settingsRow = await this.prisma.settings.findUnique({
       where: { id: 1 },
@@ -122,6 +126,8 @@ export class PipelineRunner {
       roleRules: settings.role_rules,
     };
 
+    this.throwIfCancelled(runId);
+
     // ── 2. Scrape ──
     const notifier = this.notifier;
     const alertFn = notifier
@@ -134,6 +140,7 @@ export class PipelineRunner {
     });
 
     const scrapeResult = await orchestrator.run(scraperConfig);
+    this.throwIfCancelled(runId);
 
     // ── 2b. Apply post-age filter (safety net — scraper already stops early
     //        via lookbackCutoff, but some posts may lack parseable timestamps) ──
@@ -171,9 +178,11 @@ export class PipelineRunner {
     }
 
     // ── 3. Save raw posts to DB (before AI filter) ──
+    const scrapeDate = new Date().toISOString(); // full ISO datetime — unique per run
     const rawPostIds: number[] = [];
     if (scrapeResult.newPosts.length > 0) {
       for (const post of scrapeResult.newPosts) {
+        this.throwIfCancelled(runId);
         try {
           const created = await this.prisma.rawPost.create({
             data: {
@@ -185,6 +194,7 @@ export class PipelineRunner {
               post_url_hash: post.postUrlHash,
               content_hash: post.contentHash,
               group_url: post.groupUrl,
+              scrape_date: scrapeDate,
               created_time_raw: post.createdTimeRaw,
               created_time_utc: post.createdTimeUtc ?? null,
               first_seen_at: post.firstSeenAt,
@@ -214,15 +224,23 @@ export class PipelineRunner {
     let matchedJobs: MatchedJob[] = [];
 
     if (scrapeResult.newPosts.length > 0) {
+      this.throwIfCancelled(runId);
+      console.log(
+        `[PipelineRunner] Starting AI filtering for ${scrapeResult.newPosts.length} posts...`,
+      );
       const geminiClient = new GeminiClient({ apiKey: geminiApiKey });
       const aiPipeline = new AIFilterPipeline(geminiClient);
       const aiResult = await aiPipeline.run(
         scrapeResult.newPosts,
         pipelineConfig,
       );
+      this.throwIfCancelled(runId);
 
       aiStats = aiResult.stats;
       matchedJobs = aiResult.matchedJobs;
+      console.log(
+        `[PipelineRunner] AI filtering complete: processed=${aiStats.processed}, matched=${aiStats.matched}, skipped=${aiStats.skipped}, apiCalls=${aiStats.apiCallsUsed}`,
+      );
     }
 
     // ── 5. Save matched jobs to DB ──
@@ -252,6 +270,7 @@ export class PipelineRunner {
       savedCount = await this.prisma.$transaction(async (tx) => {
         let count = 0;
         for (const data of jobData) {
+          this.throwIfCancelled(runId);
           try {
             await tx.job.create({ data });
             count++;
@@ -271,17 +290,7 @@ export class PipelineRunner {
       }
     }
 
-    // ── 6. Delete raw posts (processing complete) ──
-    if (rawPostIds.length > 0) {
-      await this.prisma.rawPost.deleteMany({
-        where: { id: { in: rawPostIds } },
-      });
-      console.log(
-        `[PipelineRunner] Cleaned up ${rawPostIds.length} raw posts after processing`,
-      );
-    }
-
-    // ── 7. Notify ──
+    // ── 6. Notify (raw posts are kept for the Raw Posts dashboard) ──
     const runStats: PipelineRunStats = {
       scrape: scrapeResult.stats,
       ai: aiStats,
@@ -329,17 +338,20 @@ export class PipelineRunner {
   async runWithTimeout(
     source: RunSource = "manual",
     timeoutMs: number = RUN_TIMEOUT_MS,
+    runId?: string,
   ): Promise<PipelineRunResult> {
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error("Pipeline run timed out")),
-        timeoutMs,
-      );
+      timer = setTimeout(() => {
+        if (runId) {
+          scraperState.requestCancel(runId);
+        }
+        reject(new Error("Pipeline run timed out"));
+      }, timeoutMs);
     });
 
     try {
-      return await Promise.race([this.run(source), timeout]);
+      return await Promise.race([this.run(source, runId), timeout]);
     } finally {
       clearTimeout(timer!);
     }
@@ -347,6 +359,7 @@ export class PipelineRunner {
 
   async runFilterOnly(
     source: RunSource = "manual",
+    runId?: string,
   ): Promise<PipelineRunResult> {
     // ── 1. Load settings ──
     const settingsRow = await this.prisma.settings.findUnique({
@@ -381,10 +394,26 @@ export class PipelineRunner {
       roleRules: settings.role_rules,
     };
 
+    this.throwIfCancelled(runId);
+
     // ── 2. Query Raw Posts ──
-    const rawPostsDb = await this.prisma.rawPost.findMany();
+    const latestRow = await this.prisma.rawPost.findFirst({
+      select: { scrape_date: true },
+      where: {
+        scrape_date: {
+          not: "",
+        },
+      },
+      orderBy: { scrape_date: "desc" },
+    });
+    const latestScrapeDate = latestRow?.scrape_date ?? null;
+    const rawPostsDb = latestScrapeDate
+      ? await this.prisma.rawPost.findMany({
+          where: { scrape_date: latestScrapeDate },
+        })
+      : [];
     console.log(
-      `[PipelineRunner] Found ${rawPostsDb.length} raw posts for filtering only.`,
+      `[PipelineRunner] Found ${rawPostsDb.length} raw posts for filter-only run (latest scrape_date only).`,
     );
 
     let scrapeStats: ScrapeRunStats = {
@@ -407,6 +436,7 @@ export class PipelineRunner {
     let savedCount = 0;
 
     if (rawPostsDb.length > 0) {
+      this.throwIfCancelled(runId);
       // Map to expected format
       const postsToFilter = rawPostsDb.map((p) => ({
         fbPostId: p.fb_post_id ?? undefined,
@@ -423,11 +453,18 @@ export class PipelineRunner {
       }));
 
       // ── 3. AI Filter ──
+      console.log(
+        `[PipelineRunner] Starting AI filtering for ${postsToFilter.length} posts (filter-only)...`,
+      );
       const geminiClient = new GeminiClient({ apiKey: geminiApiKey });
       const aiPipeline = new AIFilterPipeline(geminiClient);
       const aiResult = await aiPipeline.run(postsToFilter, pipelineConfig);
+      this.throwIfCancelled(runId);
       aiStats = aiResult.stats;
       matchedJobs = aiResult.matchedJobs;
+      console.log(
+        `[PipelineRunner] AI filtering complete (filter-only): processed=${aiStats.processed}, matched=${aiStats.matched}, skipped=${aiStats.skipped}, apiCalls=${aiStats.apiCallsUsed}`,
+      );
 
       // ── 4. Save matched jobs to DB ──
       if (matchedJobs.length > 0) {
@@ -455,6 +492,7 @@ export class PipelineRunner {
         savedCount = await this.prisma.$transaction(async (tx) => {
           let count = 0;
           for (const data of jobData) {
+            this.throwIfCancelled(runId);
             try {
               await tx.job.create({ data });
               count++;
@@ -474,14 +512,7 @@ export class PipelineRunner {
         }
       }
 
-      // ── 5. Delete raw posts (processing complete) ──
-      const rawPostIds = rawPostsDb.map((p) => p.id);
-      await this.prisma.rawPost.deleteMany({
-        where: { id: { in: rawPostIds } },
-      });
-      console.log(
-        `[PipelineRunner] Cleaned up ${rawPostIds.length} raw posts after processing`,
-      );
+      // Raw posts are kept for the Raw Posts dashboard (no cleanup step)
     }
 
     const runStats: PipelineRunStats = {
@@ -526,19 +557,29 @@ export class PipelineRunner {
   async runFilterOnlyWithTimeout(
     source: RunSource = "manual",
     timeoutMs: number = RUN_TIMEOUT_MS,
+    runId?: string,
   ): Promise<PipelineRunResult> {
     let timer: ReturnType<typeof setTimeout>;
     const timeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error("Pipeline run timed out")),
-        timeoutMs,
-      );
+      timer = setTimeout(() => {
+        if (runId) {
+          scraperState.requestCancel(runId);
+        }
+        reject(new Error("Pipeline run timed out"));
+      }, timeoutMs);
     });
 
     try {
-      return await Promise.race([this.runFilterOnly(source), timeout]);
+      return await Promise.race([this.runFilterOnly(source, runId), timeout]);
     } finally {
       clearTimeout(timer!);
+    }
+  }
+
+  private throwIfCancelled(runId?: string): void {
+    if (!runId) return;
+    if (scraperState.isCancelRequested(runId)) {
+      throw new Error("Run cancelled by user");
     }
   }
 

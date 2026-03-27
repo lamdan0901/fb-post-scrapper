@@ -124,13 +124,21 @@ export class AIFilterPipeline {
         if (error instanceof GeminiCallBudgetExhaustedError) {
           break;
         }
-        if (error instanceof GeminiClassificationError) {
-          // Entire batch failed — skip all posts in it
-          stats.skipped += batch.length;
-          stats.processed += batch.length;
-          continue;
-        }
-        throw error;
+
+        // Entire batch failed (timeout/invalid response/transient API issue) —
+        // skip this batch and continue with the rest of the run.
+        const reason =
+          error instanceof GeminiClassificationError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : String(error);
+        console.warn(
+          `[AIFilterPipeline] Batch ${Math.floor(i / batchSize) + 1} failed: ${reason}`,
+        );
+        stats.skipped += batch.length;
+        stats.processed += batch.length;
+        continue;
       }
 
       // Map results back to posts by postIndex

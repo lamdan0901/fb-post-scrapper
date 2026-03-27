@@ -28,8 +28,8 @@ export interface ScraperConfig {
   maxGroups?: number;
   /** Max total posts across all groups per run (default 50). */
   maxTotalPosts?: number;
-  /** Max duration of a scrape run in milliseconds (default 10 minutes). */
-  maxRunDurationMs?: number;
+  /** Max duration per group in milliseconds (default 10 minutes). */
+  maxGroupDurationMs?: number;
   /** Stop scraping a group when posts are older than this date. */
   lookbackCutoff?: Date;
 }
@@ -71,7 +71,7 @@ const DEFAULT_MAX_POSTS_PER_GROUP = 50;
 const DEFAULT_MAX_GROUPS = 10;
 const DEFAULT_MAX_TOTAL_POSTS = 50;
 const RETRY_DELAY_MS = 5_000;
-const DEFAULT_MAX_RUN_DURATION_MS = 10 * 60 * 1_000; // 10 minutes
+const DEFAULT_MAX_GROUP_DURATION_MS = 10 * 60 * 1_000; // 10 minutes
 
 // ── Orchestrator ──
 
@@ -137,15 +137,10 @@ export class ScraperOrchestrator {
       }
 
       // ── Scrape groups ──
-      const startTime = Date.now();
-      const maxRunDurationMs =
-        config.maxRunDurationMs ?? DEFAULT_MAX_RUN_DURATION_MS;
+      const maxGroupDurationMs =
+        config.maxGroupDurationMs ?? DEFAULT_MAX_GROUP_DURATION_MS;
 
       for (const groupUrl of groups) {
-        if (Date.now() - startTime > maxRunDurationMs) {
-          await this.alertFn("⚠️ Scrape run timed out — stopping early.");
-          break;
-        }
         if (allNewPosts.length >= maxTotalPosts) break;
 
         const remainingBudget = maxTotalPosts - allNewPosts.length;
@@ -157,12 +152,13 @@ export class ScraperOrchestrator {
           const scrapeOptions: ScrapeGroupOptions = {
             lookbackCutoff: config.lookbackCutoff,
           };
-          const rawPosts = await this.scrapeGroupWithRetry(
+          const rawPosts = await this.runGroupWithTimeout({
             page,
             groupUrl,
-            postsToFetch,
-            scrapeOptions,
-          );
+            maxPosts: postsToFetch,
+            timeoutMs: maxGroupDurationMs,
+            options: scrapeOptions,
+          });
 
           stats.totalScraped += rawPosts.length;
 
@@ -232,6 +228,45 @@ export class ScraperOrchestrator {
 
       // Second attempt — let errors propagate to caller.
       return await scraper.scrapeGroup(groupUrl, maxPosts, options);
+    }
+  }
+
+  /**
+   * Run one group scrape with a hard timeout.
+   * If the timeout is reached, the caller marks this group as failed and moves on.
+   */
+  private async runGroupWithTimeout({
+    page,
+    groupUrl,
+    maxPosts,
+    timeoutMs,
+    options,
+  }: {
+    page: Page;
+    groupUrl: string;
+    maxPosts: number;
+    timeoutMs: number;
+    options?: ScrapeGroupOptions;
+  }): Promise<RawPost[]> {
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+    try {
+      return await Promise.race([
+        this.scrapeGroupWithRetry(page, groupUrl, maxPosts, options),
+        new Promise<RawPost[]>((_, reject) => {
+          timeoutHandle = setTimeout(() => {
+            reject(
+              new Error(
+                `Group scrape exceeded ${Math.floor(timeoutMs / 60_000)} minutes`,
+              ),
+            );
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+      }
     }
   }
 }

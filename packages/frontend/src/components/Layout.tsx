@@ -9,6 +9,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Database,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
 
@@ -22,6 +23,11 @@ const navItems = [
     to: "/archive",
     label: "Archive",
     icon: <Archive className="size-5 shrink-0" />,
+  },
+  {
+    to: "/raw-posts",
+    label: "Raw Posts",
+    icon: <Database className="size-5 shrink-0" />,
   },
   {
     to: "/settings",
