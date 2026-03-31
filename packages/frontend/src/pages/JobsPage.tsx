@@ -1,8 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
+import { toast } from "sonner";
 import type { JobsQuery } from "../lib/api";
-import { useJobs, useRunTimes, useScraperStatus } from "../lib/hooks";
+import {
+  useJobs,
+  useRunTimes,
+  useScraperStatus,
+  useTriggerScraper,
+  useCancelScraper,
+  useSettings,
+  useUpdateSettings,
+} from "../lib/hooks";
 import FilterBar from "../components/FilterBar";
 import JobCard from "../components/JobCard";
 
@@ -126,7 +135,7 @@ function EmptyState({
       <p className="mt-1 text-sm text-gray-600">
         {hasFilters
           ? "Try adjusting your filters to see more results."
-          : "Run a scrape from the Settings page to start collecting jobs."}
+          : "Run a scrape from the panel above to start collecting jobs."}
       </p>
       {hasFilters && (
         <button
@@ -151,6 +160,264 @@ function timeAgo(dateStr: string): string {
   if (days < 7) return `${days}d ago`;
   const weeks = Math.floor(days / 7);
   return `${weeks}w ago`;
+}
+
+function JobsScraperPanel() {
+  const trigger = useTriggerScraper();
+  const cancelTrigger = useCancelScraper();
+  const { data: settings } = useSettings();
+  const { data: runTimes } = useRunTimes();
+  const updateSettingsMutation = useUpdateSettings();
+  const { data: status } = useScraperStatus({
+    refetchInterval: (query) => {
+      const d = query.state.data;
+      return d?.status === "running" || d?.status === "cancelling"
+        ? 3000
+        : false;
+    },
+  });
+
+  const isRunning =
+    status?.status === "running" || status?.status === "cancelling";
+  const isCancelling = status?.status === "cancelling";
+
+  const lookbackHours = settings?.scrape_lookback_hours ?? null;
+  const hasLegacyDateRange =
+    (settings?.scrape_date_from ?? null) != null ||
+    (settings?.scrape_date_to ?? null) != null;
+  const [draftLookbackValue, setDraftLookbackValue] = useState<number>(() =>
+    lookbackHours == null
+      ? 4
+      : lookbackHours % 24 === 0
+        ? lookbackHours / 24
+        : lookbackHours,
+  );
+  const [draftLookbackUnit, setDraftLookbackUnit] = useState<"hours" | "days">(
+    () =>
+      lookbackHours == null
+        ? "hours"
+        : lookbackHours % 24 === 0
+          ? "days"
+          : "hours",
+  );
+  const [runFilterMode, setRunFilterMode] = useState<
+    "savedFilter" | "lastManualRunWindow"
+  >("savedFilter");
+  const hasLastManualRun = Boolean(runTimes?.lastManualRun);
+
+  function updatePostAgeFilter(hours: number | null, silent = false) {
+    if (!settings || updateSettingsMutation.isPending) return;
+    updateSettingsMutation.mutate(
+      {
+        ...settings,
+        scrape_lookback_hours: hours,
+        scrape_date_from: null,
+        scrape_date_to: null,
+      },
+      {
+        onSuccess: () => {
+          if (!silent) toast.success("Post age filter updated");
+        },
+        onError: (err) => {
+          toast.error(`Failed to update filter: ${err.message}`);
+        },
+      },
+    );
+  }
+
+  useEffect(() => {
+    if (!settings || updateSettingsMutation.isPending) return;
+    if (lookbackHours == null && hasLegacyDateRange) {
+      updateSettingsMutation.mutate(
+        {
+          ...settings,
+          scrape_lookback_hours: null,
+          scrape_date_from: null,
+          scrape_date_to: null,
+        },
+        {
+          onError: (err) => {
+            toast.error(`Failed to clear legacy date filter: ${err.message}`);
+          },
+        },
+      );
+    }
+  }, [settings, lookbackHours, hasLegacyDateRange, updateSettingsMutation]);
+
+  function commitDraftLookback() {
+    const safeValue = Math.max(1, draftLookbackValue || 1);
+    const hours = draftLookbackUnit === "days" ? safeValue * 24 : safeValue;
+    updatePostAgeFilter(hours);
+  }
+
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
+      {!isRunning && (
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            disabled={trigger.isPending || cancelTrigger.isPending}
+            onClick={() => {
+              if (
+                runFilterMode === "lastManualRunWindow" &&
+                !hasLastManualRun
+              ) {
+                toast.warning(
+                  "No manual run found yet. Run once first or use saved filter.",
+                );
+                return;
+              }
+              trigger.mutate(
+                runFilterMode === "lastManualRunWindow"
+                  ? { useLastManualRunWindow: true }
+                  : undefined,
+                {
+                  onSuccess: () => toast.success("Scraper started"),
+                  onError: (err) =>
+                    toast.error(`Failed to start scraper: ${err.message}`),
+                },
+              );
+            }}
+            className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {trigger.isPending ? "Starting…" : "Run Scraper"}
+          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Scrape window
+            </span>
+            <button
+              type="button"
+              disabled={trigger.isPending || cancelTrigger.isPending}
+              onClick={() => setRunFilterMode("savedFilter")}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                runFilterMode === "savedFilter"
+                  ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                  : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+              }`}
+            >
+              Use saved filter
+            </button>
+            <button
+              type="button"
+              disabled={
+                trigger.isPending ||
+                cancelTrigger.isPending ||
+                !hasLastManualRun
+              }
+              onClick={() => setRunFilterMode("lastManualRunWindow")}
+              className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                runFilterMode === "lastManualRunWindow"
+                  ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                  : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+              }`}
+            >
+              Most recent manual run → now
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isRunning && (
+        <>
+          <button
+            type="button"
+            disabled={cancelTrigger.isPending || isCancelling}
+            onClick={() => {
+              cancelTrigger.mutate(
+                { runId: status?.runId },
+                {
+                  onSuccess: () => toast.success("Cancellation requested"),
+                  onError: (err) =>
+                    toast.error(`Failed to cancel run: ${err.message}`),
+                },
+              );
+            }}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {cancelTrigger.isPending || isCancelling
+              ? "Cancelling…"
+              : "Cancel Scraper"}
+          </button>
+          <span className="text-sm text-gray-400">Scraper run is active</span>
+        </>
+      )}
+
+      <div className="flex gap-2 items-center">
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={!settings || updateSettingsMutation.isPending}
+            onClick={() => updatePostAgeFilter(null)}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              lookbackHours == null && !hasLegacyDateRange
+                ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+            }`}
+          >
+            No filter
+          </button>
+          <button
+            type="button"
+            disabled={!settings || updateSettingsMutation.isPending}
+            onClick={commitDraftLookback}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              lookbackHours != null
+                ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+            }`}
+          >
+            Lookback
+          </button>
+        </div>
+
+        {lookbackHours != null && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm text-gray-400">Last</span>
+            <input
+              type="number"
+              min={1}
+              value={draftLookbackValue}
+              disabled={!settings || updateSettingsMutation.isPending}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10) || 1;
+                setDraftLookbackValue(v);
+              }}
+              onBlur={commitDraftLookback}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitDraftLookback();
+              }}
+              className="w-24 rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600 disabled:opacity-50"
+            />
+            <select
+              value={draftLookbackUnit}
+              disabled={!settings || updateSettingsMutation.isPending}
+              onChange={(e) => {
+                const unit = e.target.value as "hours" | "days";
+                setDraftLookbackUnit(unit);
+              }}
+              onBlur={commitDraftLookback}
+              className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600 disabled:opacity-50"
+            >
+              <option value="hours">hours</option>
+              <option value="days">days</option>
+            </select>
+          </div>
+        )}
+      </div>
+
+      <p className="mt-2 text-xs text-gray-500">
+        {runFilterMode === "lastManualRunWindow"
+          ? `Run Scraper will process posts from ${
+              runTimes?.lastManualRun
+                ? `${new Date(runTimes.lastManualRun).toLocaleString()} to now`
+                : "the most recent manual run to now when available"
+            }.`
+          : "Run Scraper will use your saved Post Age Filter settings."}
+      </p>
+    </div>
+  );
 }
 
 export default function JobsPage() {
@@ -207,6 +474,8 @@ export default function JobsPage() {
 
       {/* Filters */}
       <FilterBar filters={filters} onChange={setFilters} />
+
+      <JobsScraperPanel />
 
       {/* Loading */}
       {isLoading && (

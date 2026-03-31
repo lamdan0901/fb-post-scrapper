@@ -95,6 +95,10 @@ export interface ScraperRunResponse {
   status: string;
 }
 
+export interface TriggerScraperBody {
+  useLastManualRunWindow?: boolean;
+}
+
 export interface ScraperStatus {
   status: string;
   runId?: string;
@@ -274,8 +278,13 @@ export function updateSettings(body: UpdateSettingsBody): Promise<Settings> {
 
 // ── Scraper ──
 
-export function triggerScraper(): Promise<ScraperRunResponse> {
-  return request<ScraperRunResponse>("/scraper/run", { method: "POST" });
+export function triggerScraper(
+  body: TriggerScraperBody = {},
+): Promise<ScraperRunResponse> {
+  return request<ScraperRunResponse>("/scraper/run", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 export function triggerFilterOnly(): Promise<ScraperRunResponse> {

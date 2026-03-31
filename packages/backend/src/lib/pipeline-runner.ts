@@ -33,6 +33,11 @@ export interface PipelineRunResult {
   sessionExpired: boolean;
 }
 
+interface ScrapeWindowOverride {
+  from: string | null;
+  to: string | null;
+}
+
 // ── Runner ──
 
 export class PipelineRunner {
@@ -56,6 +61,7 @@ export class PipelineRunner {
 
   async run(
     source: RunSource = "manual",
+    windowOverride?: ScrapeWindowOverride,
     runId?: string,
   ): Promise<PipelineRunResult> {
     // ── 1. Load settings ──
@@ -90,13 +96,22 @@ export class PipelineRunner {
     // Compute lookback cutoff so the scraper can stop scrolling early
     const { scrape_lookback_hours, scrape_date_from, scrape_date_to } =
       settings;
-    const lookbackFrom =
-      scrape_lookback_hours != null
+    const hasWindowOverride =
+      windowOverride?.from != null || windowOverride?.to != null;
+    const effectiveFrom =
+      windowOverride?.from ?? (!hasWindowOverride ? scrape_date_from : null);
+    const effectiveTo =
+      windowOverride?.to ?? (!hasWindowOverride ? scrape_date_to : null);
+    const lookbackFrom = hasWindowOverride
+      ? effectiveFrom != null
+        ? new Date(effectiveFrom)
+        : null
+      : scrape_lookback_hours != null
         ? new Date(Date.now() - scrape_lookback_hours * 60 * 60 * 1000)
-        : scrape_date_from != null
-          ? new Date(scrape_date_from)
+        : effectiveFrom != null
+          ? new Date(effectiveFrom)
           : null;
-    const lookbackTo = scrape_date_to != null ? new Date(scrape_date_to) : null;
+    const lookbackTo = effectiveTo != null ? new Date(effectiveTo) : null;
 
     if (lookbackFrom) {
       scraperConfig.lookbackCutoff = lookbackFrom;
@@ -338,6 +353,7 @@ export class PipelineRunner {
   async runWithTimeout(
     source: RunSource = "manual",
     timeoutMs: number = RUN_TIMEOUT_MS,
+    windowOverride?: ScrapeWindowOverride,
     runId?: string,
   ): Promise<PipelineRunResult> {
     let timer: ReturnType<typeof setTimeout>;
@@ -351,7 +367,10 @@ export class PipelineRunner {
     });
 
     try {
-      return await Promise.race([this.run(source, runId), timeout]);
+      return await Promise.race([
+        this.run(source, windowOverride, runId),
+        timeout,
+      ]);
     } finally {
       clearTimeout(timer!);
     }

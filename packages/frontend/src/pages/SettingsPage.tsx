@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ShieldCheck } from "lucide-react";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { Role, Level } from "@job-alert/shared";
 import type { RoleKeywords, RoleRules } from "@job-alert/shared";
 import type { UpdateSettingsBody } from "../lib/api";
@@ -214,7 +212,7 @@ function RoleConfigSection({
         className="flex w-full items-center justify-between"
       >
         <div>
-          <h2 className="text-lg font-semibold">{role} Role</h2>
+          <h2 className="text-lg text-left font-semibold">{role} Role</h2>
           <p className="mt-1 text-left text-sm text-gray-500">
             Keywords and classification rule for {role} jobs.
           </p>
@@ -440,6 +438,10 @@ function ScraperControl() {
   const activeRunType = status?.runType ?? "scraper";
   const activeRunLabel =
     activeRunType === "filter-only" ? "Filter Only" : "Scraper";
+  const [runFilterMode, setRunFilterMode] = useState<
+    "savedFilter" | "lastManualRunWindow"
+  >("savedFilter");
+  const hasLastManualRun = Boolean(runTimes?.lastManualRun);
 
   function cancelRun() {
     cancelTrigger.mutate(
@@ -456,65 +458,116 @@ function ScraperControl() {
       title="Manual Scrape"
       description="Trigger a scraping run manually, or filter existing raw posts."
     >
-      <div className="flex items-center gap-4">
+      <div className="space-y-3">
         {!isRunning && (
           <>
-            <button
-              type="button"
-              disabled={
-                trigger.isPending ||
-                filterTrigger.isPending ||
-                cancelTrigger.isPending
-              }
-              onClick={() => {
-                trigger.mutate(undefined, {
-                  onSuccess: () => toast.success("Scraper started"),
-                  onError: (err) =>
-                    toast.error(`Failed to start scraper: ${err.message}`),
-                });
-              }}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {trigger.isPending ? "Starting…" : "Run Scraper"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                disabled={
+                  trigger.isPending ||
+                  filterTrigger.isPending ||
+                  cancelTrigger.isPending
+                }
+                onClick={() => {
+                  if (
+                    runFilterMode === "lastManualRunWindow" &&
+                    !hasLastManualRun
+                  ) {
+                    toast.warning(
+                      "No manual run found yet. Run once first or use saved filter.",
+                    );
+                    return;
+                  }
+                  trigger.mutate(
+                    runFilterMode === "lastManualRunWindow"
+                      ? { useLastManualRunWindow: true }
+                      : undefined,
+                    {
+                      onSuccess: () => toast.success("Scraper started"),
+                      onError: (err) =>
+                        toast.error(`Failed to start scraper: ${err.message}`),
+                    },
+                  );
+                }}
+                className="w-fit rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {trigger.isPending ? "Starting…" : "Run Scraper"}
+              </button>
+              <button
+                type="button"
+                disabled={
+                  trigger.isPending ||
+                  filterTrigger.isPending ||
+                  cancelTrigger.isPending
+                }
+                onClick={() => {
+                  filterTrigger.mutate(undefined, {
+                    onSuccess: () => toast.success("AI Filter alone started"),
+                    onError: (err) =>
+                      toast.error(`Failed to start AI filter: ${err.message}`),
+                  });
+                }}
+                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {filterTrigger.isPending
+                  ? "Starting Filter…"
+                  : "Run Filter Only"}
+              </button>
+            </div>
 
-            <button
-              type="button"
-              disabled={
-                trigger.isPending ||
-                filterTrigger.isPending ||
-                cancelTrigger.isPending
-              }
-              onClick={() => {
-                filterTrigger.mutate(undefined, {
-                  onSuccess: () => toast.success("AI Filter alone started"),
-                  onError: (err) =>
-                    toast.error(`Failed to start AI filter: ${err.message}`),
-                });
-              }}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {filterTrigger.isPending ? "Starting Filter…" : "Run Filter Only"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                Scrape window
+              </span>
+              <button
+                type="button"
+                disabled={
+                  trigger.isPending ||
+                  filterTrigger.isPending ||
+                  cancelTrigger.isPending
+                }
+                onClick={() => setRunFilterMode("savedFilter")}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  runFilterMode === "savedFilter"
+                    ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                    : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+                }`}
+              >
+                Use saved filter
+              </button>
+              <button
+                type="button"
+                disabled={
+                  trigger.isPending ||
+                  filterTrigger.isPending ||
+                  cancelTrigger.isPending ||
+                  !hasLastManualRun
+                }
+                onClick={() => setRunFilterMode("lastManualRunWindow")}
+                className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                  runFilterMode === "lastManualRunWindow"
+                    ? "border-blue-600 bg-blue-600/20 text-blue-300"
+                    : "border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-300"
+                }`}
+              >
+                Most recent manual run → now
+              </button>
+            </div>
           </>
         )}
 
         {isRunning && (
-          <>
-            <button
-              type="button"
-              disabled={cancelTrigger.isPending || isCancelling}
-              onClick={cancelRun}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {cancelTrigger.isPending || isCancelling
-                ? `Cancelling ${activeRunLabel}…`
-                : `Cancel ${activeRunLabel}`}
-            </button>
-            <span className="text-sm text-gray-400">
-              {activeRunLabel} run is active
-            </span>
-          </>
+          <button
+            type="button"
+            disabled={cancelTrigger.isPending || isCancelling}
+            onClick={cancelRun}
+            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {cancelTrigger.isPending || isCancelling
+              ? `Cancelling ${activeRunLabel}…`
+              : `Cancel ${activeRunLabel}`}
+          </button>
         )}
 
         {status?.status === "idle" && (
@@ -593,7 +646,6 @@ function ScraperControl() {
                           ["AI Processed", status.result.ai.processed],
                           ["Matched", status.result.ai.matched],
                           ["Skipped", status.result.ai.skipped],
-                          ["API Calls", status.result.ai.apiCallsUsed],
                           ["Saved", status.result.savedCount],
                         ] as const
                       ).map(([label, val]) => (
@@ -632,7 +684,6 @@ function ScraperControl() {
                             ["AI Processed", status.result.ai.processed],
                             ["Matched", status.result.ai.matched],
                             ["Skipped", status.result.ai.skipped],
-                            ["API Calls", status.result.ai.apiCallsUsed],
                             ["Saved", status.result.savedCount],
                           ] as const
                         ).map(([label, val]) => (
@@ -659,28 +710,29 @@ function ScraperControl() {
       )}
 
       {runTimes?.lastManualRun && (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-3 text-xs text-gray-500">
           Last manual run: {new Date(runTimes.lastManualRun).toLocaleString()}
         </p>
       )}
+      <p className="mt-3 text-xs text-gray-500">
+        {runFilterMode === "lastManualRunWindow"
+          ? "Run Scraper will process posts from the most recent manual run until now."
+          : "Run Scraper will use your saved Post Age Filter settings."}
+      </p>
     </Section>
   );
 }
 
 // ── Post Time Filter ──
 
-type TimeFilterMode = "none" | "lookback" | "range";
+type TimeFilterMode = "none" | "lookback";
 
 function PostTimeFilter({
   lookbackHours,
-  dateFrom,
-  dateTo,
   error,
   onChange,
 }: {
   lookbackHours: number | null;
-  dateFrom: string | null;
-  dateTo: string | null;
   error?: string;
   onChange: (patch: {
     scrape_lookback_hours: number | null;
@@ -692,7 +744,6 @@ function PostTimeFilter({
   // immediately revert to "none" just because both date fields are still null.
   const [mode, setMode] = useState<TimeFilterMode>(() => {
     if (lookbackHours != null) return "lookback";
-    if (dateFrom != null || dateTo != null) return "range";
     return "none";
   });
 
@@ -722,13 +773,6 @@ function PostTimeFilter({
         scrape_date_from: null,
         scrape_date_to: null,
       });
-    } else {
-      // Switch to range — clear lookback but leave date fields for user to fill
-      onChange({
-        scrape_lookback_hours: null,
-        scrape_date_from: dateFrom,
-        scrape_date_to: dateTo,
-      });
     }
   }
 
@@ -752,7 +796,6 @@ function PostTimeFilter({
           [
             ["none", "No filter"],
             ["lookback", "Lookback"],
-            ["range", "Date range"],
           ] as [TimeFilterMode, string][]
         ).map(([value, label]) => (
           <button
@@ -805,58 +848,6 @@ function PostTimeFilter({
                 : `${lookbackHours} hour${lookbackHours !== 1 ? "s" : ""}`}
             </span>
           )}
-        </div>
-      )}
-
-      {/* Date range inputs */}
-      {mode === "range" && (
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">From</label>
-            <DatePicker
-              selected={dateFrom ? new Date(dateFrom) : null}
-              onChange={(date: Date | null) =>
-                onChange({
-                  scrape_lookback_hours: null,
-                  scrape_date_from: date
-                    ? `${date.toISOString().slice(0, 10)}T00:00:00.000Z`
-                    : null,
-                  scrape_date_to: dateTo,
-                })
-              }
-              selectsStart
-              startDate={dateFrom ? new Date(dateFrom) : undefined}
-              endDate={dateTo ? new Date(dateTo) : undefined}
-              maxDate={dateTo ? new Date(dateTo) : undefined}
-              dateFormat="yyyy-MM-dd"
-              placeholderText="Start date"
-              isClearable
-              className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-400">To</label>
-            <DatePicker
-              selected={dateTo ? new Date(dateTo) : null}
-              onChange={(date: Date | null) =>
-                onChange({
-                  scrape_lookback_hours: null,
-                  scrape_date_from: dateFrom,
-                  scrape_date_to: date
-                    ? `${date.toISOString().slice(0, 10)}T23:59:59.000Z`
-                    : null,
-                })
-              }
-              selectsEnd
-              startDate={dateFrom ? new Date(dateFrom) : undefined}
-              endDate={dateTo ? new Date(dateTo) : undefined}
-              minDate={dateFrom ? new Date(dateFrom) : undefined}
-              dateFormat="yyyy-MM-dd"
-              placeholderText="End date"
-              isClearable
-              className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-gray-200 outline-none focus:border-blue-600"
-            />
-          </div>
         </div>
       )}
 
@@ -975,7 +966,7 @@ function SettingsForm({
       data.scrape_date_from != null || data.scrape_date_to != null;
     if (hasLookback && hasRange) {
       errs.scrape_time =
-        "Cannot set both a lookback window and a date range simultaneously";
+        "Invalid scrape time configuration. Clear one of the active filters.";
     }
     if (
       hasLookback &&
@@ -1035,8 +1026,6 @@ function SettingsForm({
       {/* Post Age Filter */}
       <PostTimeFilter
         lookbackHours={form.scrape_lookback_hours}
-        dateFrom={form.scrape_date_from}
-        dateTo={form.scrape_date_to}
         error={validationErrors.scrape_time}
         onChange={(patch) => {
           setForm((prev) => ({ ...prev, ...patch }));

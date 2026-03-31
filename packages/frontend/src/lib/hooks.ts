@@ -30,6 +30,7 @@ import {
   type Settings,
   type UpdateSettingsBody,
   type ScraperRunResponse,
+  type TriggerScraperBody,
   type ScraperStatus,
   type CancelScraperBody,
   type RunTimes,
@@ -145,12 +146,14 @@ export function useRunTimes(options?: Partial<UseQueryOptions<RunTimes>>) {
 
 export function useTriggerScraper() {
   const queryClient = useQueryClient();
-  return useMutation<ScraperRunResponse, Error>({
-    mutationFn: triggerScraper,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
+  return useMutation<ScraperRunResponse, Error, TriggerScraperBody | undefined>(
+    {
+      mutationFn: (body) => triggerScraper(body ?? {}),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.scraperStatus });
+      },
     },
-  });
+  );
 }
 
 export function useTriggerFilterOnly() {

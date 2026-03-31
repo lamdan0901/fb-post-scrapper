@@ -2,6 +2,7 @@ import cron from "node-cron";
 import { prisma } from "./db.js";
 import { scraperState } from "./scraper-state.js";
 import { PipelineRunner } from "./pipeline-runner.js";
+import { persistCompletedRunTime } from "./run-times-store.js";
 
 class CronScheduler {
   private task: cron.ScheduledTask | null = null;
@@ -61,9 +62,20 @@ class CronScheduler {
     const runner = PipelineRunner.fromEnv(prisma);
 
     runner
-      .runWithTimeout("cron", undefined, runId)
-      .then((result) => {
+      .runWithTimeout("cron", undefined, undefined, runId)
+      .then(async (result) => {
         scraperState.completeRunFor(runId, result.stats);
+        try {
+          await persistCompletedRunTime(runId, "cron");
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unknown persistence error";
+          console.error(
+            `[Scheduler] Failed to persist cron run timestamp for run ${runId}: ${message}`,
+          );
+        }
         console.log("[Scheduler] Cron run completed successfully");
       })
       .catch((error) => {
