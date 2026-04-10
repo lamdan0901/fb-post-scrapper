@@ -1,5 +1,5 @@
 import type { Settings } from "@job-alert/generated-prisma";
-import type { Role, Level, RoleKeywords, RoleRules } from "@job-alert/shared";
+import type { Role, Level, RoleKeywords, RoleRules, RoleExclusionKeywords } from "@job-alert/shared";
 
 export interface ParsedSettings {
   id: number;
@@ -9,6 +9,7 @@ export interface ParsedSettings {
   allowed_roles: Role[];
   allowed_levels: Level[];
   role_keywords: RoleKeywords;
+  role_exclusion_keywords: RoleExclusionKeywords;
   common_rules: string;
   role_rules: RoleRules;
   max_yoe: number;
@@ -40,6 +41,7 @@ export function parseSettingsRow(row: Settings): ParsedSettings {
     allowed_roles: JSON.parse(row.allowed_roles) as Role[],
     allowed_levels: JSON.parse(row.allowed_levels) as Level[],
     role_keywords: JSON.parse(row.role_keywords) as RoleKeywords,
+    role_exclusion_keywords: JSON.parse(row.role_exclusion_keywords) as RoleExclusionKeywords,
     common_rules: row.common_rules,
     role_rules: JSON.parse(row.role_rules) as RoleRules,
     max_yoe: row.max_yoe,

@@ -13,6 +13,7 @@ import { scheduler } from "../lib/scheduler.js";
 import {
   getPersistedRunTimes,
   persistCompletedRunTime,
+  persistRunStartTime,
 } from "../lib/run-times-store.js";
 
 // ── Async run execution (fire-and-forget) ──
@@ -90,6 +91,11 @@ scraperRouter.post("/filter-only", scraperLimiter, async (_req, res) => {
     throw new ConflictError("A scrape run is already in progress");
   }
 
+  // Persist the start time immediately so the UI can show it right away
+  void persistRunStartTime("manual").catch((err) =>
+    console.error(`[Scraper] Failed to persist manual run start time: ${err instanceof Error ? err.message : err}`)
+  );
+
   // Fire-and-forget — do not await
   void executeFilterOnlyFor(runId, "manual");
 
@@ -131,6 +137,11 @@ scraperRouter.post("/run", scraperLimiter, async (req, res) => {
   if (!runId) {
     throw new ConflictError("A scrape run is already in progress");
   }
+
+  // Persist the start time immediately so the UI can show it right away
+  void persistRunStartTime("manual").catch((err) =>
+    console.error(`[Scraper] Failed to persist manual run start time: ${err instanceof Error ? err.message : err}`)
+  );
 
   // Fire-and-forget — do not await
   void executeRunFor(runId, "manual", windowOverride);

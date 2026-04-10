@@ -205,6 +205,19 @@ function JobsScraperPanel() {
   >("savedFilter");
   const hasLastManualRun = Boolean(runTimes?.lastManualRun);
 
+  // Sync draft lookback values when settings load (handles reload vs navigation)
+  useEffect(() => {
+    if (lookbackHours == null) {
+      setDraftLookbackValue(4);
+      setDraftLookbackUnit("hours");
+    } else {
+      setDraftLookbackValue(
+        lookbackHours % 24 === 0 ? lookbackHours / 24 : lookbackHours,
+      );
+      setDraftLookbackUnit(lookbackHours % 24 === 0 ? "days" : "hours");
+    }
+  }, [lookbackHours]);
+
   function updatePostAgeFilter(hours: number | null, silent = false) {
     if (!settings || updateSettingsMutation.isPending) return;
     updateSettingsMutation.mutate(
@@ -320,7 +333,7 @@ function JobsScraperPanel() {
       )}
 
       {isRunning && (
-        <>
+        <div className="space-x-2">
           <button
             type="button"
             disabled={cancelTrigger.isPending || isCancelling}
@@ -341,7 +354,7 @@ function JobsScraperPanel() {
               : "Cancel Scraper"}
           </button>
           <span className="text-sm text-gray-400">Scraper run is active</span>
-        </>
+        </div>
       )}
 
       <div className="flex gap-2 items-center">

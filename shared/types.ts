@@ -51,6 +51,7 @@ export interface RawPost {
 
 export type RoleKeywords = Partial<Record<Role, string[]>>;
 export type RoleRules = Partial<Record<Role, string>>;
+export type RoleExclusionKeywords = Partial<Record<Role, string[]>>;
 
 // ── AI Filter criteria (from Settings → Gemini prompt) ──
 
@@ -58,6 +59,9 @@ export interface FilterCriteria {
   allowedRoles: Role[];
   allowedLevels: Level[];
   maxYoe: number;
+  /** Per-role exclusion keywords. If a post contains these keywords and is classified
+   *  as a role, it will be rejected (e.g., Frontend → ["angular", "vue", "svelte"]). */
+  roleExclusionKeywords?: RoleExclusionKeywords;
 }
 
 // ── AI Classification result (Gemini response) ──

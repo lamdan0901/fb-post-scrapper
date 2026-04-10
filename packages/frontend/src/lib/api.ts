@@ -5,6 +5,7 @@ import type {
   FeedbackType,
   RoleKeywords,
   RoleRules,
+  RoleExclusionKeywords,
 } from "@job-alert/shared";
 
 const BASE_URL = "/api";
@@ -61,6 +62,7 @@ export interface Settings {
   allowed_roles: Role[];
   allowed_levels: Level[];
   role_keywords: RoleKeywords;
+  role_exclusion_keywords: RoleExclusionKeywords;
   common_rules: string;
   role_rules: RoleRules;
   max_yoe: number;
@@ -79,6 +81,7 @@ export interface UpdateSettingsBody {
   allowed_roles: Role[];
   allowed_levels: Level[];
   role_keywords: RoleKeywords;
+  role_exclusion_keywords: RoleExclusionKeywords;
   common_rules: string;
   role_rules: RoleRules;
   max_yoe: number;
@@ -210,6 +213,13 @@ export interface RawPost {
   created_time_utc: string | null;
   first_seen_at: string;
   created_at: string;
+  // AI filter fields
+  filter_role: string | null;
+  filter_level: string | null;
+  filter_yoe: number | null;
+  filter_score: number | null;
+  filter_reason: string | null;
+  rejection_reason: string | null;
 }
 
 export interface RawPostsDatesResponse {

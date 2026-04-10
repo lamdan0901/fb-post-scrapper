@@ -66,6 +66,14 @@ const roleRulesSchema = z
     message: "role_rules keys must be valid Role values",
   });
 
+// Zod schema for role_exclusion_keywords: Partial<Record<Role, string[]>>
+const roleExclusionKeywordsSchema = z
+  .record(z.string(), z.array(z.string().trim().min(1)))
+  .default({})
+  .refine((obj) => Object.keys(obj).every((k) => VALID_ROLES.includes(k)), {
+    message: "role_exclusion_keywords keys must be valid Role values",
+  });
+
 // ── Zod Schemas ──
 
 export const updateSettingsSchema = z
@@ -86,6 +94,7 @@ export const updateSettingsSchema = z
       .array(z.enum(VALID_LEVELS))
       .min(1, "At least one level is required"),
     role_keywords: roleKeywordsSchema,
+    role_exclusion_keywords: roleExclusionKeywordsSchema,
     common_rules: z.string().default(""),
     role_rules: roleRulesSchema,
     max_yoe: z.number().int().positive("max_yoe must be a positive integer"),
@@ -160,6 +169,7 @@ settingsRouter.put("/", async (req, res) => {
       allowed_roles: JSON.stringify(body.allowed_roles),
       allowed_levels: JSON.stringify(body.allowed_levels),
       role_keywords: JSON.stringify(body.role_keywords),
+      role_exclusion_keywords: JSON.stringify(body.role_exclusion_keywords),
       common_rules: body.common_rules,
       role_rules: JSON.stringify(body.role_rules),
       max_yoe: body.max_yoe,

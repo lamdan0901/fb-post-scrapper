@@ -55,10 +55,19 @@ model RawPost {
   created_time_utc DateTime?
   first_seen_at    DateTime
   created_at       DateTime  @default(now())
+  
+  // AI filter tracking
+  filter_role      String?   // Role classified by AI (e.g., "Frontend", "Other")
+  filter_level     String?   // Level classified by AI (e.g., "Junior", "Middle")
+  filter_yoe       Int?      // Years of experience extracted
+  filter_score     Int?      // Relevance score from AI (0-100)
+  filter_reason    String?   // AI's reasoning for classification
+  rejection_reason String?   // Why this post was rejected (null if accepted)
 
   @@index([content_hash])
   @@index([fb_post_id])
   @@index([scrape_date])
+  @@index([filter_role])
 }
 
 model Job {
@@ -102,6 +111,7 @@ model Settings {
   allowed_roles   String @default("[\"Frontend\",\"Backend\",\"Fullstack\",\"Mobile\",\"Other\"]") // JSON array of Role values
   allowed_levels  String @default("[\"Fresher\",\"Junior\",\"Middle\",\"Unknown\"]") // JSON array of Level values
   role_keywords   String @default("{}") // JSON Record<Role, string[]> — per-role keyword lists
+  role_exclusion_keywords String @default("{}") // JSON Record<Role, string[]> — per-role exclusion keywords (e.g., Frontend → ["angular", "vue"])
   common_rules    String @default("")   // Free-text common classification rules for AI prompt
   role_rules      String @default("{}") // JSON Record<Role, string> — per-role classification rules
   max_yoe               Int    @default(5)

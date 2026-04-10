@@ -38,6 +38,24 @@ export async function getPersistedRunTimes(): Promise<{
   };
 }
 
+export async function persistRunStartTime(source: "manual" | "cron"): Promise<void> {
+  const now = new Date().toISOString();
+  if (source === "manual") {
+    await prisma.$executeRaw`
+      UPDATE "Settings"
+      SET last_manual_run = ${now}
+      WHERE id = 1
+    `;
+    return;
+  }
+
+  await prisma.$executeRaw`
+    UPDATE "Settings"
+    SET last_cron_run = ${now}
+    WHERE id = 1
+  `;
+}
+
 export async function persistCompletedRunTime(
   runId: string,
   source: "manual" | "cron",

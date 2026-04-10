@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, ShieldCheck } from "lucide-react";
 import { Role, Level } from "@job-alert/shared";
-import type { RoleKeywords, RoleRules } from "@job-alert/shared";
+import type { RoleKeywords, RoleRules, RoleExclusionKeywords } from "@job-alert/shared";
 import type { UpdateSettingsBody } from "../lib/api";
 import {
   useSettings,
@@ -192,14 +192,18 @@ function ChipToggle<T extends string>({
 function RoleConfigSection({
   role,
   keywords,
+  exclusionKeywords,
   rule,
   onKeywordsChange,
+  onExclusionKeywordsChange,
   onRuleChange,
 }: {
   role: string;
   keywords: string[];
+  exclusionKeywords: string[];
   rule: string;
   onKeywordsChange: (keywords: string[]) => void;
+  onExclusionKeywordsChange: (keywords: string[]) => void;
   onRuleChange: (rule: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -214,7 +218,7 @@ function RoleConfigSection({
         <div>
           <h2 className="text-lg text-left font-semibold">{role} Role</h2>
           <p className="mt-1 text-left text-sm text-gray-500">
-            Keywords and classification rule for {role} jobs.
+            Keywords and classification rules for {role} jobs.
           </p>
         </div>
         <ChevronDown
@@ -235,6 +239,19 @@ function RoleConfigSection({
               tags={keywords}
               onChange={onKeywordsChange}
               placeholder={`Add ${role} keyword\u2026`}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-gray-300">
+              Exclusion Keywords
+            </label>
+            <p className="mb-2 text-xs text-gray-500">
+              If a post contains these keywords and is classified as {role}, it will be rejected.
+            </p>
+            <TagInput
+              tags={exclusionKeywords}
+              onChange={onExclusionKeywordsChange}
+              placeholder={`Add ${role} exclusion keyword\u2026`}
             />
           </div>
           <div>
@@ -925,6 +942,7 @@ function SettingsForm({
     allowed_roles: settings.allowed_roles,
     allowed_levels: settings.allowed_levels,
     role_keywords: settings.role_keywords ?? {},
+    role_exclusion_keywords: settings.role_exclusion_keywords ?? {},
     common_rules: settings.common_rules ?? "",
     role_rules: settings.role_rules ?? {},
     max_yoe: settings.max_yoe,
@@ -1148,6 +1166,7 @@ function SettingsForm({
           key={role}
           role={role}
           keywords={form.role_keywords[role] ?? []}
+          exclusionKeywords={form.role_exclusion_keywords[role] ?? []}
           rule={form.role_rules[role] ?? ""}
           onKeywordsChange={(keywords) => {
             const updated: RoleKeywords = {
@@ -1155,6 +1174,13 @@ function SettingsForm({
               [role]: keywords,
             };
             updateField("role_keywords", updated);
+          }}
+          onExclusionKeywordsChange={(exclusionKeywords) => {
+            const updated: RoleExclusionKeywords = {
+              ...form.role_exclusion_keywords,
+              [role]: exclusionKeywords,
+            };
+            updateField("role_exclusion_keywords", updated);
           }}
           onRuleChange={(rule) => {
             const updated: RoleRules = { ...form.role_rules, [role]: rule };

@@ -42,6 +42,9 @@ async function main() {
         Mobile: ["react native", "flutter", "mobile", "ios", "android"],
         Other: [],
       }),
+      role_exclusion_keywords: JSON.stringify({
+        Frontend: ["angular", "angularjs", "vue", "vuejs", "svelte", "sveltekit"],
+      }),
       common_rules: "",
       role_rules: JSON.stringify({
         Frontend:

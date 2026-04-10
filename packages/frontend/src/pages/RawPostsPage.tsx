@@ -45,12 +45,27 @@ function RawPostCard({ post }: { post: RawPost }) {
 
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900 p-4 hover:border-gray-700 transition-colors">
-      {/* Header */}
+      {/* Header with status badge */}
       <div className="mb-2 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <span className="text-sm font-medium text-gray-200">
-            {post.poster_name}
-          </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-sm font-medium text-gray-200">
+              {post.poster_name}
+            </span>
+            {post.rejection_reason ? (
+              <span className="inline-flex items-center rounded-full bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-400 border border-red-800">
+                Rejected
+              </span>
+            ) : post.filter_role ? (
+              <span className="inline-flex items-center rounded-full bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-400 border border-green-800">
+                Matched
+              </span>
+            ) : (
+              <span className="inline-flex items-center rounded-full bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-400 border border-gray-700">
+                Pending
+              </span>
+            )}
+          </div>
           {post.poster_url && (
             <a
               href={post.poster_url}
@@ -67,6 +82,45 @@ function RawPostCard({ post }: { post: RawPost }) {
           {timeAgo(timestamp)}
         </span>
       </div>
+
+      {/* AI Classification Info */}
+      {post.filter_role && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          <span className="inline-flex items-center rounded-lg bg-gray-800 px-2.5 py-1 text-xs text-gray-300">
+            <span className="text-gray-500 mr-1">Role:</span> {post.filter_role}
+          </span>
+          {post.filter_level && (
+            <span className="inline-flex items-center rounded-lg bg-gray-800 px-2.5 py-1 text-xs text-gray-300">
+              <span className="text-gray-500 mr-1">Level:</span> {post.filter_level}
+            </span>
+          )}
+          {post.filter_yoe != null && (
+            <span className="inline-flex items-center rounded-lg bg-gray-800 px-2.5 py-1 text-xs text-gray-300">
+              <span className="text-gray-500 mr-1">YOE:</span> {post.filter_yoe}
+            </span>
+          )}
+          {post.filter_score != null && (
+            <span className="inline-flex items-center rounded-lg bg-gray-800 px-2.5 py-1 text-xs text-gray-300">
+              <span className="text-gray-500 mr-1">Score:</span> {post.filter_score}/100
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Rejection Reason Alert */}
+      {post.rejection_reason && (
+        <div className="mb-3 rounded-lg bg-red-900/20 border border-red-800/50 p-3">
+          <div className="flex items-start gap-2">
+            <svg className="size-4 text-red-400 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="text-xs font-medium text-red-400">Rejected</p>
+              <p className="text-xs text-red-300 mt-0.5">{post.rejection_reason}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Group URL badge */}
       <div className="mb-3">
