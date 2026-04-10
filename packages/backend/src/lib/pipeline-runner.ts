@@ -132,11 +132,13 @@ export class PipelineRunner {
         allowedRoles: settings.allowed_roles as Role[],
         allowedLevels: settings.allowed_levels as Level[],
         maxYoe: settings.max_yoe,
+        roleExclusionKeywords: settings.role_exclusion_keywords,
       },
       keywords: [...allKeywords],
       blacklist: settings.blacklist,
       excludedLocations: settings.excluded_locations,
       roleKeywords: settings.role_keywords,
+      roleExclusionKeywords: settings.role_exclusion_keywords,
       commonRules: settings.common_rules,
       roleRules: settings.role_rules,
     };
@@ -194,7 +196,7 @@ export class PipelineRunner {
 
     // ── 3. Save raw posts to DB (before AI filter) ──
     const scrapeDate = new Date().toISOString(); // full ISO datetime — unique per run
-    const rawPostIds: number[] = [];
+    const rawPostMap = new Map<string, number>(); // postUrlHash -> rawPostId
     if (scrapeResult.newPosts.length > 0) {
       for (const post of scrapeResult.newPosts) {
         this.throwIfCancelled(runId);
@@ -215,7 +217,7 @@ export class PipelineRunner {
               first_seen_at: post.firstSeenAt,
             },
           });
-          rawPostIds.push(created.id);
+          rawPostMap.set(post.postUrlHash, created.id);
         } catch (error: unknown) {
           if (isUniqueConstraintError(error)) {
             continue;
@@ -224,7 +226,7 @@ export class PipelineRunner {
         }
       }
       console.log(
-        `[PipelineRunner] Saved ${rawPostIds.length} raw posts before AI filtering`,
+        `[PipelineRunner] Saved ${rawPostMap.size} raw posts before AI filtering`,
       );
     }
 
@@ -256,6 +258,39 @@ export class PipelineRunner {
       console.log(
         `[PipelineRunner] AI filtering complete: processed=${aiStats.processed}, matched=${aiStats.matched}, skipped=${aiStats.skipped}, apiCalls=${aiStats.apiCallsUsed}`,
       );
+
+      // ── 4b. Update raw posts with AI classification results ──
+      if (aiResult.classifiedPosts.length > 0) {
+        let updatedCount = 0;
+        for (const classified of aiResult.classifiedPosts) {
+          this.throwIfCancelled(runId);
+          const rawPostId = rawPostMap.get(classified.postUrlHash);
+          if (!rawPostId) continue;
+
+          try {
+            await this.prisma.rawPost.update({
+              where: { id: rawPostId },
+              data: {
+                filter_role: classified.role,
+                filter_level: classified.level,
+                filter_yoe: classified.yoe,
+                filter_score: classified.score,
+                filter_reason: classified.reason,
+                rejection_reason: classified.rejectionReason,
+              },
+            });
+            updatedCount++;
+          } catch (error) {
+            // Log but continue - don't fail the whole run for this
+            console.warn(
+              `[PipelineRunner] Failed to update raw post ${rawPostId}: ${error}`,
+            );
+          }
+        }
+        console.log(
+          `[PipelineRunner] Updated ${updatedCount} raw posts with AI classification results`,
+        );
+      }
     }
 
     // ── 5. Save matched jobs to DB ──
@@ -404,11 +439,13 @@ export class PipelineRunner {
         allowedRoles: settings.allowed_roles as Role[],
         allowedLevels: settings.allowed_levels as Level[],
         maxYoe: settings.max_yoe,
+        roleExclusionKeywords: settings.role_exclusion_keywords,
       },
       keywords: [...allKeywords],
       blacklist: settings.blacklist,
       excludedLocations: settings.excluded_locations,
       roleKeywords: settings.role_keywords,
+      roleExclusionKeywords: settings.role_exclusion_keywords,
       commonRules: settings.common_rules,
       roleRules: settings.role_rules,
     };
@@ -484,6 +521,42 @@ export class PipelineRunner {
       console.log(
         `[PipelineRunner] AI filtering complete (filter-only): processed=${aiStats.processed}, matched=${aiStats.matched}, skipped=${aiStats.skipped}, apiCalls=${aiStats.apiCallsUsed}`,
       );
+
+      // ── 3b. Update raw posts with AI classification results ──
+      if (aiResult.classifiedPosts.length > 0) {
+        const rawPostIdByHash = new Map(
+          rawPostsDb.map((rawPost) => [rawPost.post_url_hash, rawPost.id]),
+        );
+
+        let updatedCount = 0;
+        for (const classified of aiResult.classifiedPosts) {
+          this.throwIfCancelled(runId);
+          const rawPostId = rawPostIdByHash.get(classified.postUrlHash);
+          if (!rawPostId) continue;
+
+          try {
+            await this.prisma.rawPost.update({
+              where: { id: rawPostId },
+              data: {
+                filter_role: classified.role,
+                filter_level: classified.level,
+                filter_yoe: classified.yoe,
+                filter_score: classified.score,
+                filter_reason: classified.reason,
+                rejection_reason: classified.rejectionReason,
+              },
+            });
+            updatedCount++;
+          } catch (error) {
+            console.warn(
+              `[PipelineRunner] Failed to update raw post ${rawPostId}: ${error}`,
+            );
+          }
+        }
+        console.log(
+          `[PipelineRunner] Updated ${updatedCount} raw posts with AI classification results (filter-only)`,
+        );
+      }
 
       // ── 4. Save matched jobs to DB ──
       if (matchedJobs.length > 0) {

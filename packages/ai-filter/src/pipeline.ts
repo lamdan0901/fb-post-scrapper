@@ -4,6 +4,7 @@ import type {
   RawPost,
   RoleKeywords,
   RoleRules,
+  RoleExclusionKeywords,
 } from "@job-alert/shared";
 import {
   GeminiCallBudgetExhaustedError,
@@ -28,6 +29,7 @@ export interface PipelineConfig {
   blacklist: string[];
   excludedLocations?: string[];
   roleKeywords: RoleKeywords;
+  roleExclusionKeywords?: RoleExclusionKeywords;
   commonRules: string;
   roleRules: RoleRules;
 }
@@ -54,7 +56,29 @@ export interface PipelineStats {
 /** Complete result returned by the pipeline. */
 export interface PipelineResult {
   matchedJobs: MatchedJob[];
+  /** All posts that went through AI classification (for tracking rejection reasons). */
+  classifiedPosts: ClassifiedPost[];
   stats: PipelineStats;
+}
+
+/** A post that was classified by AI (whether matched or rejected). */
+export interface ClassifiedPost extends PipelineInput {
+  /** Role classified by AI. */
+  role: ClassificationResult["role"];
+  /** Level classified by AI. */
+  level: ClassificationResult["level"];
+  /** Years of experience extracted. */
+  yoe: number | null;
+  /** Relevance score from AI (0-100). */
+  score: number;
+  /** AI's reasoning for classification. */
+  reason: string;
+  /** Whether this post is freelance. */
+  isFreelance: boolean;
+  /** Whether this post matched the filter criteria. */
+  matched: boolean;
+  /** Why this post was rejected (null if matched). */
+  rejectionReason: string | null;
 }
 
 // ── Pipeline ──
@@ -73,6 +97,7 @@ export class AIFilterPipeline {
     config: PipelineConfig,
   ): Promise<PipelineResult> {
     this.geminiClient.resetCallCount();
+    let carriedApiCalls = 0;
 
     const preprocessor = new ContentPreprocessor({
       keywords: config.keywords,
@@ -92,6 +117,7 @@ export class AIFilterPipeline {
 
     // Phase 1: Pre-filter all posts and collect candidates for Gemini
     const candidates: { post: PipelineInput; normalized: string }[] = [];
+    const classifiedPosts: ClassifiedPost[] = [];
 
     for (const post of posts) {
       const normalized = preprocessor.normalize(post.content);
@@ -99,6 +125,18 @@ export class AIFilterPipeline {
       if (!preResult.shouldCallAI) {
         stats.skipped++;
         stats.processed++;
+        // Track pre-filter rejections too
+        classifiedPosts.push({
+          ...post,
+          role: "Other",
+          level: "Unknown",
+          yoe: null,
+          score: 0,
+          reason: `Pre-filter: ${preResult.skipReason}`,
+          isFreelance: false,
+          matched: false,
+          rejectionReason: preResult.skipReason ?? null,
+        });
         continue;
       }
       candidates.push({ post, normalized });
@@ -106,39 +144,42 @@ export class AIFilterPipeline {
 
     // Phase 2: Process candidates in batches
     const batchSize = this.geminiClient.batchSize;
+    const batchRetryDelayMs = 2_000;
 
     for (let i = 0; i < candidates.length; i += batchSize) {
-      if (this.geminiClient.remainingCalls <= 0) break;
-
       const batch = candidates.slice(i, i + batchSize);
       const postContents = batch.map((c) => c.normalized);
 
-      let results: (ClassificationResult & { postIndex: number })[];
-      try {
-        results = await this.geminiClient.classifyBatch(
-          postContents,
-          config.filterCriteria,
-          { commonRules: config.commonRules, roleRules: config.roleRules },
-        );
-      } catch (error) {
-        if (error instanceof GeminiCallBudgetExhaustedError) {
+      let results: (ClassificationResult & { postIndex: number })[] = [];
+      while (true) {
+        try {
+          results = await this.geminiClient.classifyBatch(
+            postContents,
+            config.filterCriteria,
+            { commonRules: config.commonRules, roleRules: config.roleRules },
+          );
           break;
-        }
+        } catch (error) {
+          if (error instanceof GeminiCallBudgetExhaustedError) {
+            carriedApiCalls += this.geminiClient.callsUsed;
+            this.geminiClient.resetCallCount();
+            console.warn(
+              `[AIFilterPipeline] Batch ${Math.floor(i / batchSize) + 1}: Gemini call budget exhausted. Resetting budget and retrying...`,
+            );
+            continue;
+          }
 
-        // Entire batch failed (timeout/invalid response/transient API issue) —
-        // skip this batch and continue with the rest of the run.
-        const reason =
-          error instanceof GeminiClassificationError
-            ? error.message
-            : error instanceof Error
+          const reason =
+            error instanceof GeminiClassificationError
               ? error.message
-              : String(error);
-        console.warn(
-          `[AIFilterPipeline] Batch ${Math.floor(i / batchSize) + 1} failed: ${reason}`,
-        );
-        stats.skipped += batch.length;
-        stats.processed += batch.length;
-        continue;
+              : error instanceof Error
+                ? error.message
+                : String(error);
+          console.warn(
+            `[AIFilterPipeline] Batch ${Math.floor(i / batchSize) + 1} failed: ${reason}. Retrying in ${Math.ceil(batchRetryDelayMs / 1000)}s...`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, batchRetryDelayMs));
+        }
       }
 
       // Map results back to posts by postIndex
@@ -150,10 +191,36 @@ export class AIFilterPipeline {
         if (!result) {
           // Post not in results (model omitted it) — skip
           stats.skipped++;
+          classifiedPosts.push({
+            ...batch[j]!.post,
+            role: "Other",
+            level: "Unknown",
+            yoe: null,
+            score: 0,
+            reason: "AI did not return classification for this post",
+            isFreelance: false,
+            matched: false,
+            rejectionReason: "AI classification failed",
+          });
           continue;
         }
 
-        if (this.isMatch(result, config.filterCriteria)) {
+        const matchResult = this.isMatch(result, config.filterCriteria, config.roleExclusionKeywords, batch[j]!.normalized);
+        
+        // Add to classified posts regardless of match
+        classifiedPosts.push({
+          ...batch[j]!.post,
+          role: result.role,
+          level: result.level,
+          yoe: result.yoe,
+          score: result.score,
+          reason: result.reason,
+          isFreelance: result.isFreelance,
+          matched: matchResult.matched,
+          rejectionReason: matchResult.rejectionReason,
+        });
+
+        if (matchResult.matched) {
           matchedJobs.push({
             ...batch[j]!.post,
             role: result.role,
@@ -168,8 +235,8 @@ export class AIFilterPipeline {
       }
     }
 
-    stats.apiCallsUsed = this.geminiClient.callsUsed;
-    return { matchedJobs, stats };
+    stats.apiCallsUsed = carriedApiCalls + this.geminiClient.callsUsed;
+    return { matchedJobs, classifiedPosts, stats };
   }
 
   /**
@@ -184,14 +251,37 @@ export class AIFilterPipeline {
    * 2. Level "Unknown" → accept if role matches (missing data tolerance)
    * 3. Level must be in allowedLevels
    * 4. YOE null → accept (missing data tolerance); otherwise YOE ≤ maxYoe
+   * 5. Role exclusion keywords: if post contains exclusion keywords for its classified role, reject
+   *
+   * Returns: { matched: boolean, rejectionReason: string | null }
    */
   private isMatch(
     result: ClassificationResult,
     criteria: FilterCriteria,
-  ): boolean {
+    roleExclusionKeywords: RoleExclusionKeywords | undefined,
+    normalizedContent: string,
+  ): { matched: boolean; rejectionReason: string | null } {
     // Role must match (no bypass for freelance — strict filtering applies to all job types)
     if (!criteria.allowedRoles.includes(result.role)) {
-      return false;
+      return { 
+        matched: false, 
+        rejectionReason: `Role "${result.role}" not in allowed roles: ${criteria.allowedRoles.join(", ")}` 
+      };
+    }
+
+    // Hard exclusion check: if the post contains exclusion keywords for this role, reject
+    if (roleExclusionKeywords && result.role in roleExclusionKeywords) {
+      const exclusionKeywords = roleExclusionKeywords[result.role] || [];
+      const matchedExclusionKeyword = exclusionKeywords.find((kw) => {
+        const pattern = new RegExp(`\\b${kw}\\b`, "i");
+        return pattern.test(normalizedContent);
+      });
+      if (matchedExclusionKeyword) {
+        return { 
+          matched: false, 
+          rejectionReason: `Contains exclusion keyword "${matchedExclusionKeyword}" for role "${result.role}"` 
+        };
+      }
     }
 
     // Unknown level → still match (missing data tolerance)
@@ -199,14 +289,20 @@ export class AIFilterPipeline {
       result.level !== "Unknown" &&
       !criteria.allowedLevels.includes(result.level)
     ) {
-      return false;
+      return { 
+        matched: false, 
+        rejectionReason: `Level "${result.level}" not in allowed levels: ${criteria.allowedLevels.join(", ")}` 
+      };
     }
 
     // Null YOE → still match; otherwise enforce max
     if (result.yoe !== null && result.yoe > criteria.maxYoe) {
-      return false;
+      return { 
+        matched: false, 
+        rejectionReason: `YOE ${result.yoe} exceeds maximum ${criteria.maxYoe}` 
+      };
     }
 
-    return true;
+    return { matched: true, rejectionReason: null };
   }
 }
