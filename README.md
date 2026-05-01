@@ -1,6 +1,6 @@
-# Job Alert — AI-Powered Facebook Job Scraper
+# AI-Powered Facebook Post Scraper
 
-Automatically scrapes IT job posts from Facebook groups, classifies them with Google Gemini AI, and delivers curated results to a React dashboard and Telegram notifications.
+Automatically scrapes posts from Facebook groups, classifies them with Google Gemini AI, and delivers curated results to a React dashboard and Telegram notifications.
 
 ---
 
