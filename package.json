@@ -9,7 +9,7 @@
   "scripts": {
     "dev:backend": "pnpm --filter @job-alert/backend dev",
     "dev:frontend": "pnpm --filter @job-alert/frontend dev",
-    "build": "pnpm -r build",
+    "build": "node api.js && pnpm -r build",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
